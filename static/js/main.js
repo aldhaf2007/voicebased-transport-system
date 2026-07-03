@@ -1,5 +1,3 @@
-const SpeechSynthesis = window.speechSynthesis;
-
 // Register Service Worker for offline support
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js')
@@ -21,82 +19,28 @@ let isRecording = false;
 let mediaRecorder = null;
 let audioChunks = [];
 
-// Cache available voices asynchronously to ensure offline compatibility
-let offlineVoices = [];
-function populateVoices() {
-    offlineVoices = SpeechSynthesis.getVoices();
-}
-populateVoices();
-if (SpeechSynthesis.onvoiceschanged !== undefined) {
-    SpeechSynthesis.onvoiceschanged = populateVoices;
-}
+// --- TEXT-TO-SPEECH VOICE ENGINE (KOKORO OFFLINE AUDIO GENERATOR) ---
+const CustomSpeechEngine = {
+    audio: null,
+    speak: function(text) {
+        this.cancel();
+        if (!text || !text.trim()) return;
+        this.audio = new Audio(`/tts?text=${encodeURIComponent(text)}`);
+        this.audio.play().catch(err => console.warn("Failed to play TTS audio:", err));
+    },
+    cancel: function() {
+        if (this.audio) {
+            this.audio.pause();
+            this.audio = null;
+        }
+    },
+    get speaking() {
+        return this.audio && !this.audio.paused && !this.audio.ended;
+    }
+};
 
-// Selects the absolute best English voice available on the host machine
-function getBestEnglishVoice() {
-    // Priority 1: Natural neural voices
-    let voice = offlineVoices.find(v => v.name.toLowerCase().includes('natural') && v.lang.startsWith('en'));
-    if (voice) return voice;
-
-    // Priority 2: Google / Microsoft high-quality voices
-    voice = offlineVoices.find(v => (v.name.toLowerCase().includes('google') || v.name.toLowerCase().includes('microsoft')) && v.lang.startsWith('en'));
-    if (voice) return voice;
-
-    // Priority 3: MBROLA high-quality Linux offline voices
-    voice = offlineVoices.find(v => v.name.toLowerCase().includes('mbrola') && v.lang.startsWith('en'));
-    if (voice) return voice;
-
-    // Priority 4: Festival English voices (Linux offline)
-    voice = offlineVoices.find(v => v.name.toLowerCase().includes('festival') && v.lang.startsWith('en'));
-    if (voice) return voice;
-
-    // Priority 5: Flite / CMU English voices (Linux offline)
-    voice = offlineVoices.find(v => (v.name.toLowerCase().includes('flite') || v.name.toLowerCase().includes('cmu')) && v.lang.startsWith('en'));
-    if (voice) return voice;
-
-    // Priority 6: Non-robotic English voices (excludes standard basic eSpeak)
-    voice = offlineVoices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('espeak'));
-    if (voice) return voice;
-
-    // Priority 7: Fallback to any English voice
-    voice = offlineVoices.find(v => v.lang.startsWith('en'));
-    if (voice) return voice;
-
-    return null;
-}
-
-// Store active utterances in a global reference to prevent browser garbage collection bugs
-window.speechUtancesRef = [];
-
-// --- TEXT-TO-SPEECH VOICE ENGINE ---
 function speakText(textMessage) {
-    if (SpeechSynthesis.speaking) {
-        SpeechSynthesis.cancel();
-    }
-    const utterance = new SpeechSynthesisUtterance(textMessage);
-    
-    // Automatically select the highest-quality English voice
-    const bestVoice = getBestEnglishVoice();
-    if (bestVoice) {
-        utterance.voice = bestVoice;
-        console.log(`Using voice: ${bestVoice.name} (Local: ${bestVoice.localService})`);
-    }
-    
-    utterance.lang = 'en-US';
-    // Slower speech (0.8x) sounds significantly more natural/clear for local synthesizers
-    utterance.rate = 0.8;  
-    // Slightly lower pitch (0.95) reduces robotic high-pitched resonance
-    utterance.pitch = 0.95; 
-
-    // Save strong reference to prevent garbage collection
-    window.speechUtancesRef.push(utterance);
-    utterance.onend = () => {
-        window.speechUtancesRef = window.speechUtancesRef.filter(u => u !== utterance);
-    };
-    utterance.onerror = () => {
-        window.speechUtancesRef = window.speechUtancesRef.filter(u => u !== utterance);
-    };
-
-    SpeechSynthesis.speak(utterance);
+    CustomSpeechEngine.speak(textMessage);
 }
 
 // Core routine to send text query to Flask and display results
@@ -204,8 +148,8 @@ async function initMicrophone() {
 
 // UI Trigger: Click to Toggle Recording
 micBtn.addEventListener('click', async () => {
-    if (SpeechSynthesis.speaking) {
-        SpeechSynthesis.cancel();
+    if (CustomSpeechEngine.speaking) {
+        CustomSpeechEngine.cancel();
     }
 
     if (!mediaRecorder) {
@@ -226,8 +170,8 @@ textInputForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const typedQuery = manualQueryInput.value.trim();
     if (typedQuery) {
-        if (SpeechSynthesis.speaking) {
-            SpeechSynthesis.cancel();
+        if (CustomSpeechEngine.speaking) {
+            CustomSpeechEngine.cancel();
         }
         if (isRecording && mediaRecorder) {
             mediaRecorder.stop();

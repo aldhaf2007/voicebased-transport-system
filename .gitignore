@@ -11,3 +11,7 @@ ENV/
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Kokoro TTS models and voice assets
+*.onnx
+*.bin

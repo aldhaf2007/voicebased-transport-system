@@ -93,6 +93,18 @@ class TestVoiceTransportSystem(unittest.TestCase):
             self.assertEqual(data.get("status"), "Success")
             self.assertEqual(data.get("transcription"), "find trains from Delhi to Bangalore")
 
+    @patch('app.kokoro_tts')
+    def test_tts_route(self, mock_kokoro):
+        """Test offline TTS route by mocking Kokoro."""
+        import numpy as np
+        mock_samples = np.zeros(16000, dtype=np.float32)
+        mock_kokoro.create.return_value = (mock_samples, 24000)
+
+        response = self.app.get("/tts?text=hello")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "audio/wav")
+        self.assertTrue(len(response.data) > 0)
+
 
 if __name__ == "__main__":
     unittest.main()

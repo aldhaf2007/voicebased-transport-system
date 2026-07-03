@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 import spacy
 from rapidfuzz import process, fuzz
 import io
@@ -6,6 +6,8 @@ import json
 from pydub import AudioSegment
 import whisper
 import numpy as np
+from kokoro_onnx import Kokoro
+import soundfile as sf
 
 # Import your multi-tier polyglot database bridge pipeline
 from database import query_transport_system
@@ -18,6 +20,15 @@ try:
 except Exception as e:
     print(f"Warning: Failed to load Whisper model: {e}. Offline speech search will be unavailable.")
     whisper_model = None
+
+# Initialize the Kokoro TTS model globally for offline speech synthesis
+try:
+    print("Loading Kokoro TTS model (kokoro-v1.0.onnx)...")
+    kokoro_tts = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
+    print("Kokoro TTS model loaded successfully!")
+except Exception as e:
+    print(f"Warning: Failed to load Kokoro model: {e}. Voice synthesis will be unavailable.")
+    kokoro_tts = None
 
 app = Flask(__name__)
 
@@ -240,6 +251,44 @@ def search_transport():
                 "error": "An internal server error occurred while processing your request."
             }
         ), 500
+
+
+@app.route("/tts", methods=["GET"])
+def text_to_speech():
+    """
+    Synthesizes the requested text into high-quality audio using Kokoro-82M offline.
+    """
+    text = request.args.get("text", "")
+    if not text.strip():
+        return jsonify({"error": "No text provided for synthesis."}), 400
+
+    if not kokoro_tts:
+        return jsonify({"error": "Kokoro TTS engine is not available on the server."}), 503
+
+    try:
+        # Generate audio samples and sample rate from Kokoro using the natural female voice "af_sarah"
+        samples, sample_rate = kokoro_tts.create(
+            text, 
+            voice="af_sarah", 
+            speed=1.0, 
+            lang="en-us"
+        )
+        
+        # Write to an in-memory buffer as a WAV file
+        wav_io = io.BytesIO()
+        sf.write(wav_io, samples, sample_rate, format="WAV")
+        wav_io.seek(0)
+        
+        return send_file(
+            wav_io,
+            mimetype="audio/wav",
+            as_attachment=False,
+            download_name="speech.wav"
+        )
+        
+    except Exception as e:
+        print(f"[TTS Error]: {str(e)}")
+        return jsonify({"error": f"Failed to synthesize speech: {str(e)}"}), 500
 
 
 @app.route("/search-audio", methods=["POST"])
