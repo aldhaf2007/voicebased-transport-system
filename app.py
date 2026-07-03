@@ -9,8 +9,21 @@ import numpy as np
 from kokoro_onnx import Kokoro
 import soundfile as sf
 
-# Import your multi-tier polyglot database bridge pipeline
-from database import query_transport_system
+# Import your multi-tier polyglot database bridge pipeline and admin CRUD interfaces
+from database import (
+    query_transport_system,
+    get_all_stations,
+    get_all_routes,
+    get_all_schedules,
+    add_station,
+    rename_station,
+    delete_station,
+    add_route,
+    delete_route,
+    add_schedule,
+    update_schedule,
+    delete_schedule
+)
 
 # Initialize the Whisper model globally for offline speech recognition
 try:
@@ -35,13 +48,21 @@ app = Flask(__name__)
 # Load the pre-trained English context model into memory globally
 nlp = spacy.load("en_core_web_sm")
 
-# Explicitly typed master list of valid database station names
-VALID_STATIONS = [
-    "New Delhi",
-    "Mumbai",
-    "Bangalore",
-    "Pune",
-]
+# Master list of valid database station names, loaded dynamically from get_all_stations
+VALID_STATIONS = []
+
+def reload_valid_stations():
+    global VALID_STATIONS
+    try:
+        stations = get_all_stations()
+        if stations:
+            VALID_STATIONS = stations
+        else:
+            VALID_STATIONS = ["New Delhi", "Mumbai", "Bangalore", "Pune"]
+    except Exception:
+        VALID_STATIONS = ["New Delhi", "Mumbai", "Bangalore", "Pune"]
+
+reload_valid_stations()
 
 
 
@@ -252,6 +273,112 @@ def search_transport():
                 "error": "An internal server error occurred while processing your request."
             }
         ), 500
+
+
+# ==========================================
+# ADMIN DASHBOARD ROUTINGS & ENDPOINTS
+# ==========================================
+
+@app.route("/admin")
+def admin_dashboard():
+    """Renders the interactive web panel for administrative data management."""
+    stations = get_all_stations()
+    routes = get_all_routes()
+    schedules = get_all_schedules()
+    return render_template("admin.html", stations=stations, routes=routes, schedules=schedules)
+
+
+@app.route("/admin/add-station", methods=["POST"])
+def admin_add_station():
+    data = request.get_json() or {}
+    name = data.get("name", "")
+    success, msg = add_station(name)
+    if success:
+        reload_valid_stations()
+        return jsonify({"success": True, "message": msg})
+    return jsonify({"success": False, "message": msg}), 400
+
+
+@app.route("/admin/rename-station", methods=["POST"])
+def admin_rename_station():
+    data = request.get_json() or {}
+    old_name = data.get("old_name", "")
+    new_name = data.get("new_name", "")
+    success, msg = rename_station(old_name, new_name)
+    if success:
+        reload_valid_stations()
+        return jsonify({"success": True, "message": msg})
+    return jsonify({"success": False, "message": msg}), 400
+
+
+@app.route("/admin/delete-station", methods=["POST"])
+def admin_delete_station():
+    data = request.get_json() or {}
+    name = data.get("name", "")
+    success, msg = delete_station(name)
+    if success:
+        reload_valid_stations()
+        return jsonify({"success": True, "message": msg})
+    return jsonify({"success": False, "message": msg}), 400
+
+
+@app.route("/admin/add-route", methods=["POST"])
+def admin_add_route():
+    data = request.get_json() or {}
+    source = data.get("source", "")
+    destination = data.get("destination", "")
+    success, res = add_route(source, destination)
+    if success:
+        return jsonify({"success": True, "message": res["message"], "route_id": res["route_id"]})
+    return jsonify({"success": False, "message": res}), 400
+
+
+@app.route("/admin/delete-route", methods=["POST"])
+def admin_delete_route():
+    data = request.get_json() or {}
+    route_id = data.get("route_id")
+    success, msg = delete_route(route_id)
+    if success:
+        return jsonify({"success": True, "message": msg})
+    return jsonify({"success": False, "message": msg}), 400
+
+
+@app.route("/admin/add-schedule", methods=["POST"])
+def admin_add_schedule():
+    data = request.get_json() or {}
+    route_id = data.get("route_id")
+    transport_type = data.get("transport_type")
+    departure_time = data.get("departure_time")
+    arrival_time = data.get("arrival_time")
+    available_seats = data.get("available_seats")
+    success, msg = add_schedule(route_id, transport_type, departure_time, arrival_time, available_seats)
+    if success:
+        return jsonify({"success": True, "message": msg})
+    return jsonify({"success": False, "message": msg}), 400
+
+
+@app.route("/admin/update-schedule", methods=["POST"])
+def admin_update_schedule():
+    data = request.get_json() or {}
+    schedule_id = data.get("schedule_id")
+    transport_type = data.get("transport_type")
+    departure_time = data.get("departure_time")
+    arrival_time = data.get("arrival_time")
+    available_seats = data.get("available_seats")
+    success, msg = update_schedule(schedule_id, transport_type, departure_time, arrival_time, available_seats)
+    if success:
+        return jsonify({"success": True, "message": msg})
+    return jsonify({"success": False, "message": msg}), 400
+
+
+@app.route("/admin/delete-schedule", methods=["POST"])
+def admin_delete_schedule():
+    data = request.get_json() or {}
+    schedule_id = data.get("schedule_id")
+    success, msg = delete_schedule(schedule_id)
+    if success:
+        return jsonify({"success": True, "message": msg})
+    return jsonify({"success": False, "message": msg}), 400
 
 
 @app.route("/tts", methods=["GET"])

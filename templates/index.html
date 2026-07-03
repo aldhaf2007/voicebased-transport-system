@@ -17,8 +17,11 @@
 
     <div class="dashboard-container">
         <header>
-            <h1>🎙️ Voice Transport Gateway</h1>
-            <p>Click the microphone and ask for route schedules (e.g., "Show trains from New Delhi to Mumbai")</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <h1>🎙️ Voice Transport Gateway</h1>
+                <a href="/admin" style="color: #a5b4fc; text-decoration: none; font-size: 0.85rem; border: 1px solid var(--primary-color); padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.3s;" onmouseover="this.style.background='rgba(99,102,241,0.1)'" onmouseout="this.style.background='transparent'">⚙️ Admin Panel</a>
+            </div>
+            <p style="margin-top: 0.75rem;">Click the microphone and ask for route schedules (e.g., "Show trains from New Delhi to Mumbai")</p>
         </header>
 
         <main class="interaction-panel">

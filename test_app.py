@@ -105,6 +105,40 @@ class TestVoiceTransportSystem(unittest.TestCase):
         self.assertEqual(response.mimetype, "audio/wav")
         self.assertTrue(len(response.data) > 0)
 
+    @patch('app.get_all_stations')
+    @patch('app.get_all_routes')
+    @patch('app.get_all_schedules')
+    def test_admin_dashboard(self, mock_schedules, mock_routes, mock_stations):
+        """Test admin dashboard page render."""
+        mock_stations.return_value = ["Delhi", "Mumbai"]
+        mock_routes.return_value = [{"route_id": 1, "source": "Delhi", "destination": "Mumbai"}]
+        mock_schedules.return_value = []
+        
+        response = self.app.get("/admin")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Administrative Command Center", response.data)
+
+    @patch('app.add_station')
+    @patch('app.reload_valid_stations')
+    def test_admin_add_station(self, mock_reload, mock_add):
+        """Test admin add-station endpoint."""
+        mock_add.return_value = (True, "Station added successfully.")
+        response = self.app.post("/admin/add-station", json={"name": "Kolkata"})
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["success"])
+        mock_reload.assert_called_once()
+
+    @patch('app.delete_station')
+    @patch('app.reload_valid_stations')
+    def test_admin_delete_station(self, mock_reload, mock_delete):
+        """Test admin delete-station endpoint."""
+        mock_delete.return_value = (True, "Station deleted successfully.")
+        response = self.app.post("/admin/delete-station", json={"name": "Kolkata"})
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["success"])
+
 
 if __name__ == "__main__":
     unittest.main()

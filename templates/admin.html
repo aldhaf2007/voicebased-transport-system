@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration Panel - Voice Transport Gateway</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Specific enhancements for wider Admin Command Center dashboard layout */
+        body {
+            align-items: flex-start;
+            padding: 2rem;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            margin: 0 auto;
+        }
+
+        header.admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        header.admin-header h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(to right, #a5b4fc, #fbcfe8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            color: #a5b4fc;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: rgba(99, 102, 241, 0.1);
+            color: white;
+        }
+
+        /* Alert notifications styling */
+        .alert-banner {
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        /* Responsive Grid Panels */
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .admin-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .admin-card:hover {
+            border-color: var(--card-hover-border);
+        }
+
+        .admin-card h2 {
+            font-size: 1.25rem;
+            color: #a5b4fc;
+            font-family: var(--font-heading);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 0.5rem;
+        }
+
+        /* Flex lists layout */
+        .data-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .data-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .data-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .data-item:hover {
+            background: rgba(255,255,255,0.04);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.2s;
+            font-weight: 500;
+        }
+
+        .btn-small:hover {
+            opacity: 0.9;
+        }
+
+        .btn-edit {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-delete {
+            background: var(--error-color);
+            color: white;
+        }
+
+        /* Forms Layout */
+        .admin-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .admin-form .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .admin-form label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .admin-form input, .admin-form select {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .admin-form input:focus, .admin-form select:focus {
+            border-color: var(--primary-color);
+        }
+
+        .admin-form button[type="submit"] {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .admin-form button[type="submit"]:hover {
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .admin-form button[type="submit"]:active {
+            transform: translateY(1px);
+        }
+
+        /* Wide Schedules Table Section */
+        .schedules-section {
+            grid-column: 1 / -1;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.2);
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .table-wrapper::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        table.schedules-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        table.schedules-table th, table.schedules-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        table.schedules-table th {
+            background: rgba(255,255,255,0.02);
+            color: #a5b4fc;
+            font-family: var(--font-heading);
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        table.schedules-table tr:hover {
+            background: rgba(255,255,255,0.01);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #111827;
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 0.5rem;
+        }
+
+        .modal-header h3 {
+            color: #a5b4fc;
+            font-family: var(--font-heading);
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-container">
+        <header class="admin-header">
+            <div>
+                <h1>🎙️ Administrative Command Center</h1>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">
+                    Manage station networks, directed route IDs, and service time schedules.
+                </p>
+            </div>
+            <a href="/" class="back-btn">➔ Back to Search</a>
+        </header>
+
+        <!-- Alert Notification Panel -->
+        <div id="alert-panel" class="alert-banner"></div>
+
+        <div class="admin-grid">
+
+            <!-- 1. STATIONS WORKSPACE -->
+            <div class="admin-card">
+                <h2>🚉 Stations Node Catalog (Neo4j)</h2>
+                
+                <div class="data-list" id="stations-list">
+                    {% for station in stations %}
+                        <div class="data-item">
+                            <span>{{ station }}</span>
+                            <div class="btn-group">
+                                <button class="btn-small btn-edit" onclick="triggerRenameStation('{{ station }}')">Rename</button>
+                                <button class="btn-small btn-delete" onclick="executeDeleteStation('{{ station }}')">Delete</button>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; padding: 1rem;">No stations found.</p>
+                    {% endfor %}
+                </div>
+
+                <form id="add-station-form" class="admin-form">
+                    <div class="form-group">
+                        <label for="station-name-input">Add New Station Node</label>
+                        <input type="text" id="station-name-input" placeholder="e.g. Pune, Mumbai, Delhi..." required autocomplete="off">
+                    </div>
+                    <button type="submit">Add Station Node</button>
+                </form>
+            </div>
+
+            <!-- 2. ROUTES WORKSPACE -->
+            <div class="admin-card">
+                <h2>🔗 Directed Graph Connections (Neo4j)</h2>
+                
+                <div class="data-list" id="routes-list">
+                    {% for route in routes %}
+                        <div class="data-item">
+                            <span>
+                                <strong>[{{ route.route_id }}]</strong> 
+                                {{ route.source }} ➔ {{ route.destination }}
+                            </span>
+                            <button class="btn-small btn-delete" onclick="executeDeleteRoute({{ route.route_id }})">Delete</button>
+                        </div>
+                    {% else %}
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; padding: 1rem;">No routes found.</p>
+                    {% endfor %}
+                </div>
+
+                <form id="add-route-form" class="admin-form">
+                    <div class="form-group">
+                        <label for="route-source-select">Source Station</label>
+                        <select id="route-source-select" required>
+                            <option value="">Select Origin Station...</option>
+                            {% for station in stations %}
+                                <option value="{{ station }}">{{ station }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="route-dest-select">Destination Station</label>
+                        <select id="route-dest-select" required>
+                            <option value="">Select Target Station...</option>
+                            {% for station in stations %}
+                                <option value="{{ station }}">{{ station }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit">Establish Graph Connection</button>
+                </form>
+            </div>
+
+            <!-- 3. SCHEDULES WORKSPACE (MySQL) -->
+            <div class="admin-card schedules-section">
+                <h2>📅 Active Service Schedules Catalog (MySQL)</h2>
+
+                <div class="table-wrapper">
+                    <table class="schedules-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Route (ID)</th>
+                                <th>Service</th>
+                                <th>Departure</th>
+                                <th>Arrival</th>
+                                <th>Seats Available</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedules-table-body">
+                            {% for s in schedules %}
+                                <tr>
+                                    <td><strong>#{{ s.schedule_id }}</strong></td>
+                                    <td>{{ s.source }} ➔ {{ s.destination }} <small style="color: var(--text-secondary)">({{ s.route_id }})</small></td>
+                                    <td>{{ s.transport_type }}</td>
+                                    <td>{{ s.departure_time }}</td>
+                                    <td>{{ s.arrival_time }}</td>
+                                    <td>{{ s.available_seats }} seats</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn-small btn-edit" onclick="triggerEditSchedule({{ s.schedule_id }}, {{ s.route_id }}, '{{ s.transport_type }}', '{{ s.departure_time }}', '{{ s.arrival_time }}', {{ s.available_seats }})">Edit</button>
+                                            <button class="btn-small btn-delete" onclick="executeDeleteSchedule({{ s.schedule_id }})">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No schedules registered.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="color: #a5b4fc; font-family: var(--font-heading); margin-top: 1rem;" id="schedule-form-heading">Create New Schedule Record</h3>
+                <form id="schedule-form" class="admin-form">
+                    <input type="hidden" id="edit-schedule-id" value="">
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="schedule-route-select">Select Connected Route Pathway</label>
+                            <select id="schedule-route-select" required>
+                                <option value="">Choose Path...</option>
+                                {% for route in routes %}
+                                    <option value="{{ route.route_id }}">{{ route.source }} ➔ {{ route.destination }} (ID: {{ route.route_id }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="schedule-service-select">Select Service Type</label>
+                            <select id="schedule-service-select" required>
+                                <option value="">Choose service...</option>
+                                <option value="Flight">Flight</option>
+                                <option value="Train">Train</option>
+                                <option value="Bus">Bus</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="schedule-dep-input">Departure Time</label>
+                            <input type="text" id="schedule-dep-input" placeholder="e.g. 08:30:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="schedule-arr-input">Arrival Time</label>
+                            <input type="text" id="schedule-arr-input" placeholder="e.g. 10:45:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="schedule-seats-input">Available Seats</label>
+                            <input type="number" id="schedule-seats-input" min="1" placeholder="e.g. 50" required>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="submit" style="flex: 1;" id="schedule-submit-btn">Save Schedule Entry</button>
+                        <button type="button" id="schedule-cancel-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: white; border-radius: 8px; padding: 0.6rem; cursor: pointer; display: none;" onclick="resetScheduleForm()">Cancel Edit</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Rename Station Modal Popup -->
+    <div class="modal-overlay" id="rename-station-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Rename Station Node</h3>
+                <button class="close-modal" onclick="closeRenameModal()">×</button>
+            </div>
+            <form id="rename-station-form" class="admin-form">
+                <input type="hidden" id="rename-old-name">
+                <div class="form-group">
+                    <label>Current Name</label>
+                    <input type="text" id="rename-old-display" disabled style="background: rgba(255,255,255,0.02); color: var(--text-secondary);">
+                </div>
+                <div class="form-group">
+                    <label for="rename-new-name">New Station Name</label>
+                    <input type="text" id="rename-new-name" required autocomplete="off">
+                </div>
+                <button type="submit">Confirm Rename</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const alertPanel = document.getElementById('alert-panel');
+
+        function showAlert(message, isSuccess = true) {
+            alertPanel.textContent = message;
+            alertPanel.className = `alert-banner ${isSuccess ? 'alert-success' : 'alert-error'}`;
+            alertPanel.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            setTimeout(() => {
+                alertPanel.style.display = 'none';
+            }, 6000);
+        }
+
+        // --- 1. STATIONS ENDPOINTS ---
+        document.getElementById('add-station-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const stationInput = document.getElementById('station-name-input');
+            const name = stationInput.value.trim();
+            if (!name) return;
+
+            try {
+                const response = await fetch('/admin/add-station', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(data.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, false);
+                }
+            } catch (err) {
+                showAlert("Server request failed while adding station.", false);
+            }
+        });
+
+        async function executeDeleteStation(name) {
+            if (!confirm(`Are you sure you want to delete "${name}"? This will detach and delete all routes and schedules associated with this station.`)) {
+                return;
+            }
+            try {
+                const response = await fetch('/admin/delete-station', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(data.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, false);
+                }
+            } catch (err) {
+                showAlert("Server request failed while deleting station.", false);
+            }
+        }
+
+        // Rename modal triggers
+        const renameModal = document.getElementById('rename-station-modal');
+        function triggerRenameStation(name) {
+            document.getElementById('rename-old-name').value = name;
+            document.getElementById('rename-old-display').value = name;
+            document.getElementById('rename-new-name').value = name;
+            renameModal.classList.add('active');
+        }
+        function closeRenameModal() {
+            renameModal.classList.remove('active');
+        }
+
+        document.getElementById('rename-station-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const old_name = document.getElementById('rename-old-name').value;
+            const new_name = document.getElementById('rename-new-name').value.trim();
+            if (!new_name || old_name === new_name) {
+                closeRenameModal();
+                return;
+            }
+            try {
+                const response = await fetch('/admin/rename-station', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name, new_name })
+                });
+                const data = await response.json();
+                closeRenameModal();
+                if (data.success) {
+                    showAlert(data.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, false);
+                }
+            } catch (err) {
+                showAlert("Server request failed while renaming station.", false);
+            }
+        });
+
+        // --- 2. ROUTES ENDPOINTS ---
+        document.getElementById('add-route-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const source = document.getElementById('route-source-select').value;
+            const destination = document.getElementById('route-dest-select').value;
+            if (!source || !destination) return;
+
+            try {
+                const response = await fetch('/admin/add-route', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source, destination })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(data.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, false);
+                }
+            } catch (err) {
+                showAlert("Server request failed while adding route connection.", false);
+            }
+        });
+
+        async function executeDeleteRoute(route_id) {
+            if (!confirm(`Are you sure you want to delete directed route ID ${route_id}? All corresponding schedules will be cleared from MySQL.`)) {
+                return;
+            }
+            try {
+                const response = await fetch('/admin/delete-route', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ route_id })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(data.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, false);
+                }
+            } catch (err) {
+                showAlert("Server request failed while deleting route.", false);
+            }
+        }
+
+        // --- 3. SCHEDULES ENDPOINTS ---
+        const scheduleForm = document.getElementById('schedule-form');
+        const editScheduleId = document.getElementById('edit-schedule-id');
+        const scheduleRouteSelect = document.getElementById('schedule-route-select');
+        const scheduleServiceSelect = document.getElementById('schedule-service-select');
+        const scheduleDepInput = document.getElementById('schedule-dep-input');
+        const scheduleArrInput = document.getElementById('schedule-arr-input');
+        const scheduleSeatsInput = document.getElementById('schedule-seats-input');
+        const scheduleSubmitBtn = document.getElementById('schedule-submit-btn');
+        const scheduleCancelBtn = document.getElementById('schedule-cancel-btn');
+        const scheduleFormHeading = document.getElementById('schedule-form-heading');
+
+        function triggerEditSchedule(id, routeId, type, dep, arr, seats) {
+            editScheduleId.value = id;
+            scheduleRouteSelect.value = routeId;
+            scheduleServiceSelect.value = type;
+            scheduleDepInput.value = dep;
+            scheduleArrInput.value = arr;
+            scheduleSeatsInput.value = seats;
+            
+            // Toggle edit view styling
+            scheduleFormHeading.textContent = `Modify Schedule Record #${id}`;
+            scheduleSubmitBtn.textContent = "Confirm Changes";
+            scheduleCancelBtn.style.display = "block";
+            scheduleRouteSelect.disabled = true; // Route ID cannot be changed once created (seeding integrity)
+            
+            window.scrollTo({
+                top: scheduleForm.offsetTop - 50,
+                behavior: 'smooth'
+            });
+        }
+
+        function resetScheduleForm() {
+            editScheduleId.value = "";
+            scheduleForm.reset();
+            scheduleFormHeading.textContent = "Create New Schedule Record";
+            scheduleSubmitBtn.textContent = "Save Schedule Entry";
+            scheduleCancelBtn.style.display = "none";
+            scheduleRouteSelect.disabled = false;
+        }
+
+        scheduleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = editScheduleId.value;
+            const route_id = scheduleRouteSelect.value;
+            const transport_type = scheduleServiceSelect.value;
+            const departure_time = scheduleDepInput.value.trim();
+            const arrival_time = scheduleArrInput.value.trim();
+            const available_seats = scheduleSeatsInput.value;
+
+            const isEdit = id !== "";
+            const endpoint = isEdit ? '/admin/update-schedule' : '/admin/add-schedule';
+            const payload = isEdit ? 
+                { schedule_id: id, transport_type, departure_time, arrival_time, available_seats } : 
+                { route_id, transport_type, departure_time, arrival_time, available_seats };
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(data.message);
+                    resetScheduleForm();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, false);
+                }
+            } catch (err) {
+                showAlert("Server request failed while saving schedule details.", false);
+            }
+        });
+
+        async function executeDeleteSchedule(schedule_id) {
+            if (!confirm(`Are you sure you want to delete schedule #${schedule_id}?`)) {
+                return;
+            }
+            try {
+                const response = await fetch('/admin/delete-schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ schedule_id })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(data.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.message, false);
+                }
+            } catch (err) {
+                showAlert("Server request failed while deleting schedule record.", false);
+            }
+        }
+    </script>
+</body>
+</html>
