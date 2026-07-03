@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#007bff">
+    <meta name="description" content="Voice-based transport and route enquiry system">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="VT Gateway">
+    <title>Voice Transport Enquiry System</title>
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🎙️</text></svg>">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <header>
+            <h1>🎙️ Voice Transport Gateway</h1>
+            <p>Click the microphone and ask for route schedules (e.g., "Show trains from New Delhi to Mumbai")</p>
+        </header>
+
+        <main class="interaction-panel">
+            <button id="mic-btn" class="mic-button">
+                <span class="mic-icon">🎤</span>
+                <span id="mic-status">Click to Speak</span>
+            </button>
+
+            <div class="divider">
+                <span>OR</span>
+            </div>
+
+            <form id="text-input-form" class="manual-input-form">
+                <input type="text" id="manual-query" placeholder="Type query (e.g., 'New Delhi to Mumbai')..." autocomplete="off" required>
+                <button type="submit" id="submit-btn">Search</button>
+            </form>
+
+            <div class="transcript-box">
+                <h3>Live Transcript / Query Input:</h3>
+                <p id="speech-transcript" class="placeholder-text">Your voice payload string or typed query will appear here...</p>
+            </div>
+        </main>
+
+        <section id="results-section" class="results-container hidden">
+            <h2>🗺️ Resolved Route Schedules</h2>
+            <div id="results-output"></div>
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

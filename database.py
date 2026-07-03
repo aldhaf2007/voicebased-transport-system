@@ -1,5 +1,6 @@
 import mysql.connector
 from neo4j import GraphDatabase
+import os
 
 # ==========================================
 # 1. DATABASE CONFIGURATION CONFIG
@@ -8,13 +9,13 @@ from neo4j import GraphDatabase
 MYSQL_CONFIG = {
     "host": "localhost",
     "user": "root",
-    "password": "0362007Ag",
+    "password": "",
     "database": "transport_db",
 }
 
-NEO4J_URI = "bolt://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "0362007Ag"
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "0362007Ag")
 
 
 # ==========================================
@@ -82,7 +83,12 @@ def query_transport_system(source, destination):
     print(f"🔗 Neo4j matching route IDs found: {route_ids}")
 
     if not route_ids:
-        return {"status": "No direct routes found in graph infrastructure.", "data": []}
+        return {
+            "status": "No routes found",
+            "origin": src,
+            "destination": dest,
+            "schedules": []
+        }
 
     # --- PHASE 2: MYSQL RELATIONAL LOOKUP ---
     mysql_conn = get_mysql_connection()
@@ -107,10 +113,17 @@ def query_transport_system(source, destination):
         FROM Schedules s
         INNER JOIN Transport_Details t ON s.transport_id = t.transport_id
         WHERE s.route_id IN ({format_strings}) AND s.available_seats > 0
-        """ 
+        """
 
         cursor.execute(sql_query, tuple(route_ids))
         final_schedule_results = cursor.fetchall()
+
+        # Convert timedelta and time objects to string for JSON compatibility
+        import datetime
+        for row in final_schedule_results:
+            for key, val in row.items():
+                if isinstance(val, (datetime.timedelta, datetime.time)):
+                    row[key] = str(val)
 
     except mysql.connector.Error as err:
         print(f"❌ MySQL Query Failure: {err}")
@@ -121,9 +134,9 @@ def query_transport_system(source, destination):
 
     return {
         "status": "Success",
-        "source": src,
+        "origin": src,
         "destination": dest,
-        "data": final_schedule_results,
+        "schedules": final_schedule_results,
     }
 
 

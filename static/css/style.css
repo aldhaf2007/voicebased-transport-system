@@ -1,0 +1,449 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #111827 50%, #1e1b4b 100%);
+    --card-bg: rgba(255, 255, 255, 0.03);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-hover-bg: rgba(255, 255, 255, 0.06);
+    --card-hover-border: rgba(255, 255, 255, 0.15);
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --primary-color: #6366f1;
+    --primary-glow: rgba(99, 102, 241, 0.4);
+    --accent-color: #ec4899;
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Plus Jakarta Sans', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1rem;
+    overflow-x: hidden;
+}
+
+.dashboard-container {
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 680px;
+    padding: 2.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+header h1 {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(to right, #818cf8, #e0e7ff, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.interaction-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.mic-button {
+    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+    border: none;
+    outline: none;
+    color: white;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.5), 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.mic-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(79, 70, 229, 0.15), 0 15px 30px -5px rgba(79, 70, 229, 0.5);
+}
+
+.mic-button:active {
+    transform: scale(0.95);
+}
+
+.mic-icon {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
+}
+
+#mic-status {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.9;
+}
+
+/* Pulse animation when active recording */
+@keyframes pulse-record {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7), 0 10px 25px -5px rgba(236, 72, 153, 0.4);
+    }
+    50% {
+        transform: scale(1.06);
+        box-shadow: 0 0 0 20px rgba(236, 72, 153, 0), 0 20px 35px -5px rgba(236, 72, 153, 0.6);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(236, 72, 153, 0), 0 10px 25px -5px rgba(236, 72, 153, 0.4);
+    }
+}
+
+.mic-button.recording {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #be185d 100%);
+    animation: pulse-record 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 0.5rem 0;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--card-border);
+}
+
+.divider span {
+    padding: 0 1rem;
+}
+
+.manual-input-form {
+    display: flex;
+    width: 100%;
+    gap: 0.75rem;
+}
+
+#manual-query {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+#manual-query:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+#submit-btn {
+    background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+#submit-btn:active {
+    transform: translateY(1px);
+}
+
+.settings-details {
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.settings-details[open] {
+    border-color: var(--card-hover-border);
+}
+
+.settings-details summary {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.settings-details summary:hover {
+    color: var(--text-primary);
+}
+
+.settings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--card-border);
+}
+
+.settings-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.settings-item label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.form-control {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.form-control option {
+    background: #111827;
+    color: var(--text-primary);
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+}
+
+.settings-item input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+
+.settings-item input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.settings-item input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.secondary-btn {
+    align-self: flex-start;
+    background: transparent;
+    border: 1px solid var(--primary-color);
+    border-radius: 8px;
+    color: #a5b4fc;
+    padding: 0.5rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.secondary-btn:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: white;
+}
+
+.secondary-btn:active {
+    transform: translateY(1px);
+}
+
+.transcript-box {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    width: 100%;
+    padding: 1.5rem;
+    text-align: center;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.transcript-box h3 {
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+#speech-transcript {
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+#speech-transcript.placeholder-text {
+    color: rgba(255, 255, 255, 0.25);
+    font-style: normal;
+    font-weight: 400;
+}
+
+.results-container {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 2rem;
+    margin-top: 1rem;
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.results-container h2 {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    background: linear-gradient(to right, #a5b4fc, #fbcfe8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#results-output {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.schedule-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.schedule-card:hover {
+    background: var(--card-hover-bg);
+    border-color: var(--card-hover-border);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.3);
+}
+
+.schedule-card strong {
+    color: #a5b4fc;
+}
+
+/* Special styles for status indicators or warnings inside schedule cards */
+.schedule-card.error {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.05);
+    color: #fca5a5;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .dashboard-container {
+        padding: 1.5rem;
+    }
+    header h1 {
+        font-size: 2rem;
+    }
+    .mic-button {
+        width: 110px;
+        height: 110px;
+    }
+    .mic-icon {
+        font-size: 2rem;
+    }
+}
