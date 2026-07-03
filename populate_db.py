@@ -128,6 +128,32 @@ def populate_mysql():
         # Route 6: New Delhi -> Pune
         (6, 1, "14:00:00", "16:15:00", 50),   # Flight (1)
         (6, 2, "21:30:00", "23:45:00", 60),   # Train (2)
+
+        # Route 7: Mumbai -> New Delhi (Return leg)
+        (7, 1, "11:00:00", "13:15:00", 50),   # Flight (1)
+        (7, 2, "18:00:00", "10:00:00", 110),  # Train (2)
+        (7, 3, "20:00:00", "15:30:00", 30),   # Bus (3)
+
+        # Route 8: Bangalore -> Mumbai (Return leg)
+        (8, 1, "14:30:00", "16:10:00", 40),   # Flight (1)
+        (8, 2, "08:00:00", "02:30:00", 80),   # Train (2)
+        (8, 3, "19:30:00", "05:30:00", 20),   # Bus (3)
+
+        # Route 9: Bangalore -> New Delhi (Return leg)
+        (9, 1, "10:00:00", "12:45:00", 35),   # Flight (1)
+        (9, 2, "19:00:00", "23:30:00", 95),   # Train (2)
+
+        # Route 10: Bangalore -> Pune (Return leg)
+        (10, 3, "09:00:00", "18:45:00", 25),  # Bus (3)
+        (10, 2, "21:00:00", "11:15:00", 70),  # Train (2)
+
+        # Route 11: Pune -> Mumbai (Return leg)
+        (11, 2, "06:00:00", "09:15:00", 120), # Train (2)
+        (11, 3, "13:00:00", "16:30:00", 40),  # Bus (3)
+
+        # Route 12: Pune -> New Delhi (Return leg)
+        (12, 1, "17:30:00", "19:45:00", 45),  # Flight (1)
+        (12, 2, "09:00:00", "11:15:00", 75),  # Train (2)
     ]
 
     try:
@@ -178,12 +204,6 @@ def populate_neo4j():
             print(f"✓ Created {len(stations)} Station nodes: {', '.join(stations)}.")
 
             # Create CONNECTS_TO relationships mapping to MySQL Route IDs
-            # 1: New Delhi -> Mumbai
-            # 2: Mumbai -> Bangalore
-            # 3: New Delhi -> Bangalore
-            # 4: Pune -> Bangalore
-            # 5: Mumbai -> Pune
-            # 6: New Delhi -> Pune
             connections = [
                 ("New Delhi", "Mumbai", 1),
                 ("Mumbai", "Bangalore", 2),
@@ -191,6 +211,12 @@ def populate_neo4j():
                 ("Pune", "Bangalore", 4),
                 ("Mumbai", "Pune", 5),
                 ("New Delhi", "Pune", 6),
+                ("Mumbai", "New Delhi", 7),
+                ("Bangalore", "Mumbai", 8),
+                ("Bangalore", "New Delhi", 9),
+                ("Bangalore", "Pune", 10),
+                ("Pune", "Mumbai", 11),
+                ("Pune", "New Delhi", 12),
             ]
 
             cypher_rel_query = """
@@ -202,7 +228,7 @@ def populate_neo4j():
             for start, end, r_id in connections:
                 session.run(cypher_rel_query, start_name=start, end_name=end, route_id=r_id)
             
-            print(f"✓ Established directed CONNECTS_TO relationships (Route IDs: 1 to 6).")
+            print(f"✓ Established directed CONNECTS_TO relationships (Route IDs: 1 to 12).")
 
     except Exception as e:
         print(f"❌ Failed to seed Neo4j graph nodes and links: {e}")

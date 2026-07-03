@@ -36,7 +36,7 @@ class TestVoiceTransportSystem(unittest.TestCase):
         self.assertTrue(len(result["schedules"]) > 0)
         
         # Query for an unknown route segment
-        result_none = query_transport_system("Bangalore", "New Delhi")
+        result_none = query_transport_system("Bangalore", "Chennai")
         self.assertEqual(result_none.get("status"), "No routes found")
         self.assertEqual(result_none.get("schedules"), [])
 

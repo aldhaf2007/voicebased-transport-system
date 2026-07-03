@@ -350,7 +350,7 @@ def delete_station(name):
 
 
 def add_route(source, destination):
-    """Establishes a new directed route path between two stations (creates relationship in Neo4j)."""
+    """Establishes bidirectional route connections between two stations (creates two relationships in Neo4j)."""
     source = source.strip()
     destination = destination.strip()
     if not source or not destination:
@@ -363,38 +363,54 @@ def add_route(source, destination):
         return False, "Neo4j connection failed."
         
     try:
-        # Check if route already exists
-        check_query = """
-        MATCH (start:Station {name: $source})-[r:CONNECTS_TO]->(end:Station {name: $destination})
-        RETURN count(r) AS cnt
-        """
         # Get max route_id
         max_id_query = "MATCH ()-[r:CONNECTS_TO]->() RETURN max(r.route_id) AS max_id"
         
-        # Create relation
-        create_query = """
-        MATCH (start:Station {name: $source})
-        MATCH (end:Station {name: $destination})
-        CREATE (start)-[:CONNECTS_TO {route_id: $route_id}]->(end)
-        """
+        # Check forward route
+        check_forward = "MATCH (a:Station {name: $source})-[r:CONNECTS_TO]->(b:Station {name: $destination}) RETURN count(r) AS cnt"
+        # Check backward route
+        check_backward = "MATCH (a:Station {name: $destination})-[r:CONNECTS_TO]->(b:Station {name: $source}) RETURN count(r) AS cnt"
         
         with neo4j_driver.session() as session:
-            # Check route duplicate
-            res = session.run(check_query, source=source, destination=destination).single()
-            if res and res["cnt"] > 0:
-                return False, f"A directed route from '{source}' to '{destination}' already exists."
-            
             # Find next route_id
             max_res = session.run(max_id_query).single()
             max_id = max_res["max_id"] if max_res and max_res["max_id"] is not None else 0
-            new_route_id = max_id + 1
             
-            # Create relationship
-            session.run(create_query, source=source, destination=destination, route_id=new_route_id)
+            created_routes = []
+            last_id = max_id
             
-        return True, {"message": f"Route from '{source}' to '{destination}' created successfully.", "route_id": new_route_id}
+            # Forward connection
+            forward_cnt = session.run(check_forward, source=source, destination=destination).single()["cnt"]
+            if forward_cnt == 0:
+                last_id += 1
+                forward_id = last_id
+                create_forward = """
+                MATCH (start:Station {name: $source})
+                MATCH (end:Station {name: $destination})
+                CREATE (start)-[:CONNECTS_TO {route_id: $route_id}]->(end)
+                """
+                session.run(create_forward, source=source, destination=destination, route_id=forward_id)
+                created_routes.append(f"'{source}' to '{destination}' (ID: {forward_id})")
+            
+            # Backward connection
+            backward_cnt = session.run(check_backward, source=source, destination=destination).single()["cnt"]
+            if backward_cnt == 0:
+                last_id += 1
+                backward_id = last_id
+                create_backward = """
+                MATCH (start:Station {name: $destination})
+                MATCH (end:Station {name: $source})
+                CREATE (start)-[:CONNECTS_TO {route_id: $route_id}]->(end)
+                """
+                session.run(create_backward, source=source, destination=destination, route_id=backward_id)
+                created_routes.append(f"'{destination}' to '{source}' (ID: {backward_id})")
+            
+            if not created_routes:
+                return False, "Connections in both directions already exist."
+                
+        return True, {"message": f"Established bidirectional connections: {', '.join(created_routes)}.", "route_id": last_id}
     except Exception as e:
-        return False, f"Failed to create route: {e}"
+        return False, f"Failed to create bidirectional route: {e}"
     finally:
         neo4j_driver.close()
 
