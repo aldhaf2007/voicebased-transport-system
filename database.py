@@ -47,83 +47,154 @@ def get_neo4j_driver():
 def query_transport_system(source, destination):
     """
     Executes a polyglot query across Neo4j and MySQL.
-    1. Fetches route IDs from Neo4j topology.
-    2. Fetches real-time schedules/seats from MySQL using those route IDs.
+    1. Fetches direct or multi-hop path configurations from Neo4j topology.
+    2. If a direct path exists, returns schedules for that direct route.
+    3. If no direct path exists but multi-hop paths are found, returns transit path details.
     """
-    # Normalize input text (lowercasing/stripping whitespace)
     src = source.strip().title()
     dest = destination.strip().title()
 
     print(f"\n🔍 Searching routes from '{src}' to '{dest}'...")
 
-    # --- PHASE 1: NEO4J GRAPH TRAVERSAL ---
     neo4j_driver = get_neo4j_driver()
     if not neo4j_driver:
         return {"error": "Graph database connection failed."}
 
-    route_ids = []
-
-    # Cypher query to match cities and pull the unique route identification code
+    # Find paths from start to end (up to 2 hops)
     cypher_query = """
-    MATCH (start:Station {name: $src})-[relationships:CONNECTS_TO*]->(end:Station {name: $dest})
-    UNWIND relationships AS r
-    RETURN r.route_id AS route_id
+    MATCH p = (start:Station {name: $src})-[r:CONNECTS_TO*1..2]->(end:Station {name: $dest})
+    RETURN [n in nodes(p) | n.name] AS stations, [rel in relationships(p) | rel.route_id] AS route_ids
     """
-
+    
+    paths = []
     try:
         with neo4j_driver.session() as session:
             result = session.run(cypher_query, src=src, dest=dest)
-            route_ids = [record["route_id"] for record in result]
+            for record in result:
+                paths.append({
+                    "stations": record["stations"],
+                    "route_ids": record["route_ids"]
+                })
     except Exception as e:
         print(f"❌ Neo4j Query Failure: {e}")
         return {"error": "Graph routing query execution failed."}
     finally:
         neo4j_driver.close()
 
-    print(f"🔗 Neo4j matching route IDs found: {route_ids}")
-
-    if not route_ids:
+    if not paths:
         return {
             "status": "No routes found",
             "origin": src,
             "destination": dest,
-            "schedules": []
+            "schedules": [],
+            "is_transit": False
         }
 
-    # --- PHASE 2: MYSQL RELATIONAL LOOKUP ---
+    # Separate direct paths (1 hop) and transit paths (2 hops)
+    direct_paths = [p for p in paths if len(p["route_ids"]) == 1]
+    transit_paths = [p for p in paths if len(p["route_ids"]) > 1]
+
     mysql_conn = get_mysql_connection()
     if not mysql_conn:
         return {"error": "Relational database connection failed."}
+    cursor = mysql_conn.cursor(dictionary=True)
 
-    final_schedule_results = []
-    cursor = mysql_conn.cursor(dictionary=True)  # Return rows as python dictionaries
+    import datetime
+    def format_row_times(row):
+        for key, val in row.items():
+            if isinstance(val, (datetime.timedelta, datetime.time)):
+                row[key] = str(val)
+        return row
 
     try:
-        # Construct placeholders for SQL IN clause dynamically (%s, %s, ...)
-        format_strings = ", ".join(["%s"] * len(route_ids))
+        # Case A: Direct routes are available
+        if direct_paths:
+            route_ids = [p["route_ids"][0] for p in direct_paths]
+            format_strings = ", ".join(["%s"] * len(route_ids))
+            sql_query = f"""
+            SELECT 
+                s.route_id, 
+                t.type AS transport_type, 
+                s.departure_time, 
+                s.arrival_time,  
+                s.available_seats 
+            FROM Schedules s
+            INNER JOIN Transport_Details t ON s.transport_id = t.transport_id
+            WHERE s.route_id IN ({format_strings}) AND s.available_seats > 0
+            """
+            cursor.execute(sql_query, tuple(route_ids))
+            rows = cursor.fetchall()
+            schedules = [format_row_times(row) for row in rows]
+            
+            return {
+                "status": "Success",
+                "origin": src,
+                "destination": dest,
+                "schedules": schedules,
+                "is_transit": False
+            }
 
-        # SQL query to grab schedule, price, capacity details
-        sql_query = f"""
-        SELECT 
-            s.route_id, 
-            t.type AS transport_type, 
-            s.departure_time, 
-            s.arrival_time,  
-            s.available_seats 
-        FROM Schedules s
-        INNER JOIN Transport_Details t ON s.transport_id = t.transport_id
-        WHERE s.route_id IN ({format_strings}) AND s.available_seats > 0
-        """
+        # Case B: No direct route, but multi-hop transit paths exist
+        resolved_transit_paths = []
+        for path in transit_paths:
+            legs_data = []
+            valid_path = True
+            
+            # Fetch schedules for each leg
+            for i in range(len(path["route_ids"])):
+                r_id = path["route_ids"][i]
+                leg_src = path["stations"][i]
+                leg_dest = path["stations"][i+1]
+                
+                sql_query = """
+                SELECT 
+                    s.route_id, 
+                    t.type AS transport_type, 
+                    s.departure_time, 
+                    s.arrival_time,  
+                    s.available_seats 
+                FROM Schedules s
+                INNER JOIN Transport_Details t ON s.transport_id = t.transport_id
+                WHERE s.route_id = %s AND s.available_seats > 0
+                """
+                cursor.execute(sql_query, (r_id,))
+                rows = cursor.fetchall()
+                schedules = [format_row_times(row) for row in rows]
+                
+                if not schedules:
+                    # If any leg has no schedules, the whole path is invalid
+                    valid_path = False
+                    break
+                    
+                legs_data.append({
+                    "source": leg_src,
+                    "destination": leg_dest,
+                    "route_id": r_id,
+                    "schedules": schedules
+                })
+                
+            if valid_path:
+                resolved_transit_paths.append({
+                    "legs": legs_data
+                })
 
-        cursor.execute(sql_query, tuple(route_ids))
-        final_schedule_results = cursor.fetchall()
-
-        # Convert timedelta and time objects to string for JSON compatibility
-        import datetime
-        for row in final_schedule_results:
-            for key, val in row.items():
-                if isinstance(val, (datetime.timedelta, datetime.time)):
-                    row[key] = str(val)
+        if resolved_transit_paths:
+            return {
+                "status": "Success",
+                "origin": src,
+                "destination": dest,
+                "schedules": [],
+                "is_transit": True,
+                "transit_paths": resolved_transit_paths
+            }
+        else:
+            return {
+                "status": "No routes found",
+                "origin": src,
+                "destination": dest,
+                "schedules": [],
+                "is_transit": False
+            }
 
     except mysql.connector.Error as err:
         print(f"❌ MySQL Query Failure: {err}")
@@ -131,13 +202,6 @@ def query_transport_system(source, destination):
     finally:
         cursor.close()
         mysql_conn.close()
-
-    return {
-        "status": "Success",
-        "origin": src,
-        "destination": dest,
-        "schedules": final_schedule_results,
-    }
 
 
 # ==========================================

@@ -213,7 +213,50 @@ function displayResults(data) {
         return;
     }
 
-    if (data.schedules && data.schedules.length > 0) {
+    if (data.is_transit && data.transit_paths && data.transit_paths.length > 0) {
+        currentResultsData = data;
+        
+        data.transit_paths.forEach((path, pathIndex) => {
+            const card = document.createElement('div');
+            card.className = 'schedule-card';
+            
+            let pathHtml = `<strong style="color: #a5b4fc; font-size: 1.05rem;">🗺️ Transit Route Option ${pathIndex + 1}:</strong><br>`;
+            
+            path.legs.forEach((leg, legIndex) => {
+                const schedule = leg.schedules[0];
+                const transportType = schedule.transport_type || 'service';
+                const departureTime = schedule.departure_time || 'N/A';
+                const arrivalTime = schedule.arrival_time || 'N/A';
+                
+                pathHtml += `
+                    <div style="margin-left: 10px; border-left: 2px solid var(--primary-color); padding-left: 12px; margin-top: 10px; margin-bottom: 10px;">
+                        <strong>Leg ${legIndex + 1}:</strong> ${leg.source} ➔ ${leg.destination} <br>
+                        <strong>Service:</strong> ${transportType} | 
+                        <strong>Departure:</strong> ${departureTime} | 
+                        <strong>Arrival:</strong> ${arrivalTime}
+                    </div>
+                `;
+            });
+            
+            card.innerHTML = pathHtml;
+            resultsOutput.appendChild(card);
+        });
+
+        // Compile verbal summary for transit path options
+        let verbalSummary = `No direct route found from ${data.origin} to ${data.destination}. However, you can travel `;
+        const firstPath = data.transit_paths[0];
+        firstPath.legs.forEach((leg, index) => {
+            const transport = leg.schedules[0].transport_type || 'service';
+            if (index > 0) {
+                verbalSummary += `, and then from ${leg.source} to ${leg.destination} via ${transport}`;
+            } else {
+                verbalSummary += `from ${leg.source} to ${leg.destination} via ${transport}`;
+            }
+        });
+        verbalSummary += `. Click Read All to hear full schedules.`;
+        speakText(verbalSummary);
+
+    } else if (data.schedules && data.schedules.length > 0) {
         currentResultsData = data;
         let verbalSummary = `Found ${data.schedules.length} options from ${data.origin} to ${data.destination}. `;
         
@@ -259,15 +302,38 @@ function displayResults(data) {
 
 // Click handler for Read All button to voice all results on demand
 readAllBtn.addEventListener('click', () => {
-    if (!currentResultsData || !currentResultsData.schedules || currentResultsData.schedules.length === 0) return;
+    if (!currentResultsData) return;
     
-    let fullVerbalSummary = `Here are all ${currentResultsData.schedules.length} options from ${currentResultsData.origin} to ${currentResultsData.destination}. `;
-    
-    currentResultsData.schedules.forEach((schedule, index) => {
-        const transportType = schedule.transport_type || 'service';
-        const departureTime = formatTimeForSpeech(schedule.departure_time);
-        fullVerbalSummary += `Option ${index + 1}: A ${transportType} departing at ${departureTime}. `;
-    });
-    
-    speakText(fullVerbalSummary);
+    if (currentResultsData.is_transit) {
+        if (!currentResultsData.transit_paths || currentResultsData.transit_paths.length === 0) return;
+        
+        let fullVerbalSummary = `Here are the transit route options from ${currentResultsData.origin} to ${currentResultsData.destination}. `;
+        
+        currentResultsData.transit_paths.forEach((path, pathIndex) => {
+            fullVerbalSummary += `Option ${pathIndex + 1}: `;
+            path.legs.forEach((leg, legIndex) => {
+                const transport = leg.schedules[0].transport_type || 'service';
+                const time = formatTimeForSpeech(leg.schedules[0].departure_time);
+                if (legIndex > 0) {
+                    fullVerbalSummary += `, followed by a ${transport} from ${leg.source} to ${leg.destination} departing at ${time}`;
+                } else {
+                    fullVerbalSummary += `Take a ${transport} from ${leg.source} to ${leg.destination} departing at ${time}`;
+                }
+            });
+            fullVerbalSummary += `. `;
+        });
+        speakText(fullVerbalSummary);
+    } else {
+        if (!currentResultsData.schedules || currentResultsData.schedules.length === 0) return;
+        
+        let fullVerbalSummary = `Here are all ${currentResultsData.schedules.length} options from ${currentResultsData.origin} to ${currentResultsData.destination}. `;
+        
+        currentResultsData.schedules.forEach((schedule, index) => {
+            const transportType = schedule.transport_type || 'service';
+            const departureTime = formatTimeForSpeech(schedule.departure_time);
+            fullVerbalSummary += `Option ${index + 1}: A ${transportType} departing at ${departureTime}. `;
+        });
+        
+        speakText(fullVerbalSummary);
+    }
 });
