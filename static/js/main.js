@@ -193,9 +193,9 @@ function displayResults(data) {
     }
 
     if (data.schedules && data.schedules.length > 0) {
-        let verbalSummary = `Found ${data.schedules.length} schedules from ${data.origin} to ${data.destination}. `;
+        let verbalSummary = `Found ${data.schedules.length} options from ${data.origin} to ${data.destination}. `;
         
-        data.schedules.forEach((schedule, index) => {
+        data.schedules.forEach((schedule) => {
             const card = document.createElement('div');
             card.className = 'schedule-card';
             
@@ -210,9 +210,17 @@ function displayResults(data) {
                 <strong>Status:</strong> Live on Schedule
             `;
             resultsOutput.appendChild(card);
-            
-            verbalSummary += `Option ${index + 1}: A ${transportType} departing at ${departureTime}. `;
         });
+        
+        // Build concise voice output to keep speech short and natural
+        if (data.schedules.length === 1) {
+            verbalSummary += `It is a ${data.schedules[0].transport_type || 'service'} departing at ${data.schedules[0].departure_time || 'N/A'}.`;
+        } else {
+            verbalSummary += `The first option is a ${data.schedules[0].transport_type || 'service'} departing at ${data.schedules[0].departure_time || 'N/A'}. `;
+            if (data.schedules.length > 1) {
+                verbalSummary += `We also have a ${data.schedules[1].transport_type || 'service'} departing at ${data.schedules[1].departure_time || 'N/A'}.`;
+            }
+        }
         
         speakText(verbalSummary); 
         
