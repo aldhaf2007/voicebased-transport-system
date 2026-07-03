@@ -271,7 +271,7 @@ def text_to_speech():
         samples, sample_rate = kokoro_tts.create(
             text, 
             voice="af_sarah", 
-            speed=1.0, 
+            speed=1.3, 
             lang="en-us"
         )
         
