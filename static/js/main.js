@@ -41,6 +41,24 @@ const CustomSpeechEngine = {
     }
 };
 
+// Formats HH:MM:SS time strings into a highly natural spoken format (e.g. 16:30:00 -> 4:30 PM, 08:00:00 -> 8 AM)
+function formatTimeForSpeech(timeStr) {
+    if (!timeStr) return 'N/A';
+    const parts = timeStr.split(':');
+    if (parts.length >= 2) {
+        let hour = parseInt(parts[0], 10);
+        const minute = parts[1];
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12;
+        hour = hour ? hour : 12; // 0 hour becomes 12
+        if (minute === '00') {
+            return `${hour} ${ampm}`;
+        }
+        return `${hour}:${minute} ${ampm}`;
+    }
+    return timeStr;
+}
+
 function speakText(textMessage) {
     CustomSpeechEngine.speak(textMessage);
 }
@@ -218,11 +236,11 @@ function displayResults(data) {
         
         // Build concise voice output to keep speech short and natural
         if (data.schedules.length === 1) {
-            verbalSummary += `It is a ${data.schedules[0].transport_type || 'service'} departing at ${data.schedules[0].departure_time || 'N/A'}.`;
+            verbalSummary += `It is a ${data.schedules[0].transport_type || 'service'} departing at ${formatTimeForSpeech(data.schedules[0].departure_time)}.`;
         } else {
-            verbalSummary += `The first option is a ${data.schedules[0].transport_type || 'service'} departing at ${data.schedules[0].departure_time || 'N/A'}. `;
+            verbalSummary += `The first option is a ${data.schedules[0].transport_type || 'service'} departing at ${formatTimeForSpeech(data.schedules[0].departure_time)}. `;
             if (data.schedules.length > 1) {
-                verbalSummary += `We also have a ${data.schedules[1].transport_type || 'service'} departing at ${data.schedules[1].departure_time || 'N/A'}. `;
+                verbalSummary += `We also have a ${data.schedules[1].transport_type || 'service'} departing at ${formatTimeForSpeech(data.schedules[1].departure_time)}. `;
             }
             verbalSummary += `Click Read All to hear all options.`;
         }
@@ -247,7 +265,7 @@ readAllBtn.addEventListener('click', () => {
     
     currentResultsData.schedules.forEach((schedule, index) => {
         const transportType = schedule.transport_type || 'service';
-        const departureTime = schedule.departure_time || 'N/A';
+        const departureTime = formatTimeForSpeech(schedule.departure_time);
         fullVerbalSummary += `Option ${index + 1}: A ${transportType} departing at ${departureTime}. `;
     });
     
