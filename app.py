@@ -3,11 +3,13 @@ import spacy
 from rapidfuzz import process, fuzz
 import io
 import json
+import base64
 from pydub import AudioSegment
 import whisper
 import numpy as np
 from kokoro_onnx import Kokoro
 import soundfile as sf
+import onnxruntime as ort
 
 # Import your multi-tier polyglot database bridge pipeline and admin CRUD interfaces
 from database import (
@@ -34,14 +36,28 @@ except Exception as e:
     print(f"Warning: Failed to load Whisper model: {e}. Offline speech search will be unavailable.")
     whisper_model = None
 
-# Initialize the Kokoro TTS model globally for offline speech synthesis
+# Initialize the Kokoro TTS model globally for offline speech synthesis with optimized SessionOptions
 try:
-    print("Loading Kokoro TTS model (kokoro-v1.0.onnx)...")
-    kokoro_tts = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
-    print("Kokoro TTS model loaded successfully!")
+    print("Loading Kokoro TTS model (kokoro-v1.0.onnx) with optimized SessionOptions...")
+    sess_options = ort.SessionOptions()
+    # Optimize threads to avoid scheduler overhead and minimize latency
+    sess_options.intra_op_num_threads = 4
+    sess_options.inter_op_num_threads = 1
+    sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+    sess_options.enable_mem_pattern = True
+    sess_options.enable_cpu_mem_arena = True
+    
+    session = ort.InferenceSession("kokoro-v1.0.onnx", sess_options, providers=["CPUExecutionProvider"])
+    kokoro_tts = Kokoro.from_session(session, "voices-v1.0.bin")
+    print("Kokoro TTS model loaded successfully with SessionOptions!")
 except Exception as e:
-    print(f"Warning: Failed to load Kokoro model: {e}. Voice synthesis will be unavailable.")
-    kokoro_tts = None
+    print(f"Warning: Failed to load Kokoro model with SessionOptions: {e}. Falling back to default...")
+    try:
+        kokoro_tts = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
+    except Exception as ex:
+        print(f"Warning: Failed to load Kokoro model: {ex}. Voice synthesis will be unavailable.")
+        kokoro_tts = None
 
 app = Flask(__name__)
 
@@ -261,6 +277,82 @@ def search_transport():
 
         # Pipeline Phase 3: Execute polyglot database bridge routine (Neo4j paths + MySQL properties)
         search_results = query_transport_system(source_clean, dest_clean)
+
+        # Build verbal summary for TTS engine
+        def build_verbal_summary(data):
+            if not data or data.get("error"):
+                return ""
+            origin = data.get("origin", "Unknown")
+            destination = data.get("destination", "Unknown")
+            
+            if data.get("is_transit"):
+                paths = data.get("transit_paths", [])
+                if not paths:
+                    return f"No routes found from {origin} to {destination}."
+                summary = f"No direct route found from {origin} to {destination}. However, you can travel "
+                first_path = paths[0]
+                for idx, leg in enumerate(first_path["legs"]):
+                    transport = leg["schedules"][0]["transport_type"] if leg["schedules"] else "service"
+                    if idx > 0:
+                        summary += f", and then from {leg['source']} to {leg['destination']} via {transport}"
+                    else:
+                        summary += f"from {leg['source']} to {leg['destination']} via {transport}"
+                summary += ". Click Read All to hear full schedules."
+                return summary
+            else:
+                schedules = data.get("schedules", [])
+                if not schedules:
+                    return f"No routes found from {origin} to {destination}."
+                
+                summary = f"Found {len(schedules)} options from {origin} to {destination}. "
+                def format_time_speech(time_str):
+                    if not time_str:
+                        return 'N/A'
+                    parts = time_str.split(':')
+                    if len(parts) >= 2:
+                        try:
+                            hour = int(parts[0])
+                            minute = parts[1]
+                            ampm = 'PM' if hour >= 12 else 'AM'
+                            hour = hour % 12
+                            hour = hour if hour else 12
+                            if minute == '00':
+                                return f"{hour} {ampm}"
+                            return f"{hour}:{minute} {ampm}"
+                        except ValueError:
+                            return time_str
+                    return time_str
+
+                if len(schedules) == 1:
+                    summary += f"It is a {schedules[0]['transport_type']} departing at {format_time_speech(schedules[0]['departure_time'])}."
+                else:
+                    summary += f"The first option is a {schedules[0]['transport_type']} departing at {format_time_speech(schedules[0]['departure_time'])}. "
+                    if len(schedules) > 1:
+                        summary += f"We also have a {schedules[1]['transport_type']} departing at {format_time_speech(schedules[1]['departure_time'])}. "
+                    summary += "Click Read All to hear all options."
+                return summary
+
+        verbal_summary = build_verbal_summary(search_results)
+        search_results["verbal_summary"] = verbal_summary
+
+        # Pre-synthesize the voice summary into base64 audio to enable instantaneous playback
+        audio_base64 = ""
+        if kokoro_tts and verbal_summary:
+            try:
+                samples, sample_rate = kokoro_tts.create(
+                    verbal_summary, 
+                    voice="af_sarah", 
+                    speed=1.3, 
+                    lang="en-us"
+                )
+                wav_io = io.BytesIO()
+                sf.write(wav_io, samples, sample_rate, format="WAV")
+                wav_io.seek(0)
+                audio_base64 = base64.b64encode(wav_io.read()).decode("utf-8")
+            except Exception as e:
+                print(f"⚠️ Pre-TTS generation error: {e}")
+
+        search_results["audio_base64"] = audio_base64
 
         # Send unified response array back to browser client web panel
         return jsonify(search_results)

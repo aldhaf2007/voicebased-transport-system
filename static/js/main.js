@@ -30,6 +30,12 @@ const CustomSpeechEngine = {
         this.audio = new Audio(`/tts?text=${encodeURIComponent(text)}`);
         this.audio.play().catch(err => console.warn("Failed to play TTS audio:", err));
     },
+    playBase64: function(base64Data) {
+        this.cancel();
+        if (!base64Data) return;
+        this.audio = new Audio(`data:audio/wav;base64,${base64Data}`);
+        this.audio.play().catch(err => console.warn("Failed to play base64 TTS audio:", err));
+    },
     cancel: function() {
         if (this.audio) {
             this.audio.pause();
@@ -206,10 +212,11 @@ function displayResults(data) {
     resultsOutput.innerHTML = "";
     resultsSection.classList.remove('hidden');
     currentResultsData = null;
+    let textToSpeak = null;
 
     if (data.error) {
         resultsOutput.innerHTML = `<div class="schedule-card error">⚠️ ${data.error}</div>`;
-        speakText(data.error); 
+        textToSpeak = data.error;
         return;
     }
 
@@ -254,7 +261,7 @@ function displayResults(data) {
             }
         });
         verbalSummary += `. Click Read All to hear full schedules.`;
-        speakText(verbalSummary);
+        textToSpeak = verbalSummary;
 
     } else if (data.schedules && data.schedules.length > 0) {
         currentResultsData = data;
@@ -288,15 +295,22 @@ function displayResults(data) {
             verbalSummary += `Click Read All to hear all options.`;
         }
         
-        speakText(verbalSummary); 
+        textToSpeak = verbalSummary;
         
     } else {
         resultsOutput.innerHTML = `<div class="schedule-card">ℹ️ No routes found.</div>`;
         if (data.origin && data.destination) {
-            speakText(`No routes found from ${data.origin} to ${data.destination}.`);
+            textToSpeak = `No routes found from ${data.origin} to ${data.destination}.`;
         } else {
-            speakText("No routes found.");
+            textToSpeak = "No routes found.";
         }
+    }
+
+    // Play pre-generated base64 audio instantly, or fallback to HTTP TTS synthesis
+    if (data.audio_base64) {
+        CustomSpeechEngine.playBase64(data.audio_base64);
+    } else if (textToSpeak) {
+        speakText(textToSpeak);
     }
 }
 
