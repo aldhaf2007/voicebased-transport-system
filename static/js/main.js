@@ -13,11 +13,13 @@ const resultsSection = document.getElementById('results-section');
 const resultsOutput = document.getElementById('results-output');
 const textInputForm = document.getElementById('text-input-form');
 const manualQueryInput = document.getElementById('manual-query');
+const readAllBtn = document.getElementById('read-all-btn');
 
-// Track recording states
+// Track state
 let isRecording = false;
 let mediaRecorder = null;
 let audioChunks = [];
+let currentResultsData = null;
 
 // --- TEXT-TO-SPEECH VOICE ENGINE (KOKORO OFFLINE AUDIO GENERATOR) ---
 const CustomSpeechEngine = {
@@ -185,6 +187,7 @@ textInputForm.addEventListener('submit', async (event) => {
 function displayResults(data) {
     resultsOutput.innerHTML = "";
     resultsSection.classList.remove('hidden');
+    currentResultsData = null;
 
     if (data.error) {
         resultsOutput.innerHTML = `<div class="schedule-card error">⚠️ ${data.error}</div>`;
@@ -193,6 +196,7 @@ function displayResults(data) {
     }
 
     if (data.schedules && data.schedules.length > 0) {
+        currentResultsData = data;
         let verbalSummary = `Found ${data.schedules.length} options from ${data.origin} to ${data.destination}. `;
         
         data.schedules.forEach((schedule) => {
@@ -218,8 +222,9 @@ function displayResults(data) {
         } else {
             verbalSummary += `The first option is a ${data.schedules[0].transport_type || 'service'} departing at ${data.schedules[0].departure_time || 'N/A'}. `;
             if (data.schedules.length > 1) {
-                verbalSummary += `We also have a ${data.schedules[1].transport_type || 'service'} departing at ${data.schedules[1].departure_time || 'N/A'}.`;
+                verbalSummary += `We also have a ${data.schedules[1].transport_type || 'service'} departing at ${data.schedules[1].departure_time || 'N/A'}. `;
             }
+            verbalSummary += `Click Read All to hear all options.`;
         }
         
         speakText(verbalSummary); 
@@ -233,3 +238,18 @@ function displayResults(data) {
         }
     }
 }
+
+// Click handler for Read All button to voice all results on demand
+readAllBtn.addEventListener('click', () => {
+    if (!currentResultsData || !currentResultsData.schedules || currentResultsData.schedules.length === 0) return;
+    
+    let fullVerbalSummary = `Here are all ${currentResultsData.schedules.length} options from ${currentResultsData.origin} to ${currentResultsData.destination}. `;
+    
+    currentResultsData.schedules.forEach((schedule, index) => {
+        const transportType = schedule.transport_type || 'service';
+        const departureTime = schedule.departure_time || 'N/A';
+        fullVerbalSummary += `Option ${index + 1}: A ${transportType} departing at ${departureTime}. `;
+    });
+    
+    speakText(fullVerbalSummary);
+});

@@ -431,6 +431,41 @@ header p {
     }
 }
 
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    width: 100%;
+}
+
+.read-all-button {
+    background: transparent;
+    border: 1px solid var(--primary-color);
+    border-radius: 8px;
+    color: #a5b4fc;
+    padding: 0.4rem 0.8rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    outline: none;
+}
+
+.read-all-button:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: white;
+    border-color: var(--card-hover-border);
+}
+
+.read-all-button:active {
+    transform: translateY(1px);
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
     .dashboard-container {
