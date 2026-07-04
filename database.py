@@ -60,9 +60,9 @@ def query_transport_system(source, destination):
     if not neo4j_driver:
         return {"error": "Graph database connection failed."}
 
-    # Find paths from start to end (up to 2 hops)
+    # Find paths from start to end (up to 5 hops)
     cypher_query = """
-    MATCH p = (start:Station {name: $src})-[r:CONNECTS_TO*1..2]->(end:Station {name: $dest})
+    MATCH p = (start:Station {name: $src})-[r:CONNECTS_TO*1..5]->(end:Station {name: $dest})
     RETURN [n in nodes(p) | n.name] AS stations, [rel in relationships(p) | rel.route_id] AS route_ids
     """
     
@@ -90,7 +90,7 @@ def query_transport_system(source, destination):
             "is_transit": False
         }
 
-    # Separate direct paths (1 hop) and transit paths (2 hops)
+    # Separate direct paths (1 hop) and transit paths (multiple hops)
     direct_paths = [p for p in paths if len(p["route_ids"]) == 1]
     transit_paths = [p for p in paths if len(p["route_ids"]) > 1]
 
@@ -107,6 +107,7 @@ def query_transport_system(source, destination):
         return row
 
     try:
+        schedules = []
         # Case A: Direct routes are available
         if direct_paths:
             route_ids = [p["route_ids"][0] for p in direct_paths]
@@ -126,6 +127,7 @@ def query_transport_system(source, destination):
             rows = cursor.fetchall()
             schedules = [format_row_times(row) for row in rows]
             
+        if schedules:
             return {
                 "status": "Success",
                 "origin": src,
@@ -134,7 +136,7 @@ def query_transport_system(source, destination):
                 "is_transit": False
             }
 
-        # Case B: No direct route, but multi-hop transit paths exist
+        # Case B: No direct route (or direct routes have no schedules), but multi-hop transit paths exist
         resolved_transit_paths = []
         for path in transit_paths:
             legs_data = []
@@ -179,6 +181,8 @@ def query_transport_system(source, destination):
                 })
 
         if resolved_transit_paths:
+            # Sort transit paths by fewest legs first
+            resolved_transit_paths.sort(key=lambda x: len(x["legs"]))
             return {
                 "status": "Success",
                 "origin": src,

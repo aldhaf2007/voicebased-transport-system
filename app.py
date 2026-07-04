@@ -92,9 +92,12 @@ def correct_station_name(station_name):
     if not station_name:
         return None
 
-    highest_match = process.extractOne(station_name, VALID_STATIONS, scorer=fuzz.WRatio)
+    station_name_lower = station_name.lower().strip()
+    stations_lower = [s.lower() for s in VALID_STATIONS]
+    highest_match = process.extractOne(station_name_lower, stations_lower, scorer=fuzz.WRatio)
     if highest_match and highest_match[1] >= 75:
-        return highest_match[0]
+        match_index = highest_match[2]
+        return VALID_STATIONS[match_index]
 
     return station_name.strip().title()
 
