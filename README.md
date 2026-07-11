@@ -18,7 +18,6 @@ A state-of-the-art, fully offline, voice-controlled transport search system. It 
 8. **Administrative Command Center**: A protected web-interface for transport operators to run CRUD actions on stations, routes, and schedules in real-time.
 9. **Modern Interface**: Designed with premium dark-mode styles, responsive CSS grid layouts, micro-animations, and offline fallback caching via a Service Worker.
 10. **Smart Browser Caching**: The frontend leverages Web Performance API and `sessionStorage` to preserve complex search query results during back/forward navigation without unnecessary database re-queries, while ensuring a clean state upon manual page reloads.
-11. **Instant Boot Backend Architecture**: The heavy AI modules (Whisper, Kokoro, spaCy) are proxied using custom `LazyLoader` components, ensuring instant Flask server startup times and deferred ML loading strictly on the first inference request.
 
 ---
 
