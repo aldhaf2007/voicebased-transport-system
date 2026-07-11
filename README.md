@@ -13,7 +13,10 @@ A state-of-the-art, fully offline, voice-controlled transport search system. It 
 5. **Polyglot Database Engine**:
    * **Neo4j Graph Database**: Handles station topology, connectivity paths, and station-to-station traversals.
    * **MySQL Relational Database**: Manages scheduled schedules, transport types, prices, timings, and real-time seat capacities.
-6. **Modern Interface**: Designed with premium dark-mode styles, responsive CSS grid grids, micro-animations, and offline fallback caching via a Service Worker.
+6. **User Authentication & Ticket Booking**: Complete user signup/login flows integrated with real-time capacity-checking algorithms, allowing users to browse schedules, manage bookings securely, and cancel tickets dynamically.
+7. **Multi-Leg Transit Routing**: Automatically resolves connecting paths when direct paths are unavailable, creating an aggregated single-transaction multi-leg booking cart experience.
+8. **Administrative Command Center**: A protected web-interface for transport operators to run CRUD actions on stations, routes, and schedules in real-time.
+9. **Modern Interface**: Designed with premium dark-mode styles, responsive CSS grid layouts, micro-animations, and offline fallback caching via a Service Worker.
 
 ---
 

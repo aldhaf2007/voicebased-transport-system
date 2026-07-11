@@ -362,6 +362,17 @@
 </head>
 <body>
 
+<div class="transport-bg-logos">
+    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);">✈️</div>
+    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);">🚄</div>
+    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);">🚌</div>
+    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);">🚇</div>
+    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);">🚢</div>
+</div>
+
+
+
+
     <div class="admin-container">
         <header class="admin-header">
             <div>
@@ -370,13 +381,22 @@
                     Manage station networks, directed route IDs, and service time schedules.
                 </p>
             </div>
-            <a href="/" class="back-btn">➔ Back to Search</a>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <a href="/" class="back-btn">➔ Back to Search</a>
+                <a href="{{ url_for('admin_logout') }}" class="back-btn" style="border-color: var(--error-color); color: var(--error-color);">Logout</a>
+            </div>
         </header>
 
         <!-- Alert Notification Panel -->
         <div id="alert-panel" class="alert-banner"></div>
 
-        <div class="admin-grid">
+        <!-- Tab Navigation -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+            <button onclick="switchTab('db')" id="tab-btn-db" style="background: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Database Management</button>
+            <button onclick="switchTab('users')" id="tab-btn-users" style="background: rgba(255,255,255,0.1); color: var(--text-primary); border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Users & Bookings</button>
+        </div>
+
+        <div class="admin-grid" id="tab-content-db">
 
             <!-- 1. STATIONS WORKSPACE -->
             <div class="admin-card">
@@ -534,6 +554,144 @@
                     </div>
                 </form>
             </div>
+        </div>
+
+        <div class="admin-grid" id="tab-content-users" style="display: none;">
+            <!-- 4. REGISTERED USERS WORKSPACE -->
+            <div class="admin-card schedules-section">
+                <h2>👥 Registered System Users</h2>
+                <div class="table-wrapper">
+                    <table class="schedules-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Registration Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                                <tr>
+                                    <td><strong>#{{ u.user_id }}</strong></td>
+                                    <td>{{ u.username }}</td>
+                                    <td>{{ u.email }}</td>
+                                    <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '' }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No users registered yet.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. ALL BOOKINGS WORKSPACE -->
+            <div class="admin-card schedules-section" style="margin-top: 2rem;">
+                <h2>🎫 Active Bookings Catalog</h2>
+                <div class="table-wrapper" style="margin-bottom: 2rem;">
+                    <table class="schedules-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Passenger Name</th>
+                                <th>Email</th>
+                                <th>Route</th>
+                                <th>Travel Date</th>
+                                <th>Seats</th>
+                                <th>Booking Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in active_bookings %}
+                                <tr>
+                                    <td><strong>#{{ b.booking_id }}</strong></td>
+                                    <td>{{ b.passenger_name }}</td>
+                                    <td>{{ b.passenger_email }}</td>
+                                    <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: #fbcfe8;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
+                                    <td>{{ b.travel_date }}</td>
+                                    <td>{{ b.seats_booked }}</td>
+                                    <td>{{ b.booking_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No active bookings found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>⏳ Expired Bookings History</h2>
+                <div class="table-wrapper">
+                    <table class="schedules-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Passenger Name</th>
+                                <th>Email</th>
+                                <th>Route</th>
+                                <th>Travel Date</th>
+                                <th>Seats</th>
+                                <th>Booking Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in expired_bookings %}
+                                <tr style="opacity: 0.7;">
+                                    <td><strong>#{{ b.booking_id }}</strong></td>
+                                    <td>{{ b.passenger_name }}</td>
+                                    <td>{{ b.passenger_email }}</td>
+                                    <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: #fbcfe8;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
+                                    <td>{{ b.travel_date }}</td>
+                                    <td>{{ b.seats_booked }}</td>
+                                    <td>{{ b.booking_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No expired bookings found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2 style="color: #fca5a5; margin-top: 2rem;">❌ Cancelled Bookings</h2>
+                <div class="table-wrapper">
+                    <table class="schedules-table">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Passenger Name</th>
+                                <th>Email</th>
+                                <th>Route</th>
+                                <th>Travel Date</th>
+                                <th>Seats</th>
+                                <th>Booking Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in cancelled_bookings %}
+                                <tr style="opacity: 0.6; color: #fca5a5;">
+                                    <td><strong>#{{ b.booking_id }}</strong></td>
+                                    <td>{{ b.passenger_name }}</td>
+                                    <td>{{ b.passenger_email }}</td>
+                                    <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: #fbcfe8;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
+                                    <td>{{ b.travel_date }}</td>
+                                    <td>{{ b.seats_booked }}</td>
+                                    <td>{{ b.booking_time }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No cancelled bookings found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
         </div>
     </div>
@@ -562,6 +720,19 @@
 
     <script>
         const alertPanel = document.getElementById('alert-panel');
+
+        function switchTab(tabId) {
+            // Update buttons
+            document.getElementById('tab-btn-db').style.background = tabId === 'db' ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)';
+            document.getElementById('tab-btn-db').style.color = tabId === 'db' ? 'white' : 'var(--text-primary)';
+            
+            document.getElementById('tab-btn-users').style.background = tabId === 'users' ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)';
+            document.getElementById('tab-btn-users').style.color = tabId === 'users' ? 'white' : 'var(--text-primary)';
+
+            // Update content visibility
+            document.getElementById('tab-content-db').style.display = tabId === 'db' ? 'grid' : 'none';
+            document.getElementById('tab-content-users').style.display = tabId === 'users' ? 'grid' : 'none';
+        }
 
         function showAlert(message, isSuccess = true) {
             alertPanel.textContent = message;
@@ -628,6 +799,7 @@
             document.getElementById('rename-new-name').value = name;
             renameModal.classList.add('active');
         }
+
         function closeRenameModal() {
             renameModal.classList.remove('active');
         }
@@ -803,5 +975,6 @@
             }
         }
     </script>
+
 </body>
 </html>

@@ -1,8 +1,10 @@
-// Register Service Worker for offline support
+// Unregister Service Workers to bypass caching and prevent network stream blocks
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
-        .then(() => console.log('Service Worker registered'))
-        .catch(err => console.log('Service Worker registration failed:', err));
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+            registration.unregister();
+        }
+    });
 }
 
 // DOM UI Target Handles
@@ -27,18 +29,29 @@ const CustomSpeechEngine = {
     speak: function(text) {
         this.cancel();
         if (!text || !text.trim()) return;
-        this.audio = new Audio(`/tts?text=${encodeURIComponent(text)}`);
-        this.audio.play().catch(err => console.warn("Failed to play TTS audio:", err));
+        const audioElement = document.getElementById('tts-audio');
+        if (audioElement) {
+            audioElement.src = `/tts?text=${encodeURIComponent(text)}`;
+            audioElement.load();
+            audioElement.play().catch(err => console.warn("Failed to play TTS audio:", err));
+            this.audio = audioElement;
+        }
     },
     playBase64: function(base64Data) {
         this.cancel();
         if (!base64Data) return;
-        this.audio = new Audio(`data:audio/wav;base64,${base64Data}`);
-        this.audio.play().catch(err => console.warn("Failed to play base64 TTS audio:", err));
+        const audioElement = document.getElementById('tts-audio');
+        if (audioElement) {
+            audioElement.src = `data:audio/wav;base64,${base64Data}`;
+            audioElement.load();
+            audioElement.play().catch(err => console.warn("Failed to play base64 TTS audio:", err));
+            this.audio = audioElement;
+        }
     },
     cancel: function() {
         if (this.audio) {
             this.audio.pause();
+            this.audio.currentTime = 0;
             this.audio = null;
         }
     },
@@ -73,7 +86,7 @@ function speakText(textMessage) {
 async function performQuerySearch(queryString) {
     transcriptOutput.textContent = `"${queryString}"`;
     transcriptOutput.classList.remove('placeholder-text');
-
+    
     try {
         const response = await fetch('/search', {
             method: 'POST',
@@ -92,14 +105,14 @@ async function performQuerySearch(queryString) {
         resultsOutput.innerHTML = `<div class="schedule-card" style="color:red;">${errorMsg}</div>`;
         resultsSection.classList.remove('hidden');
         speakText(errorMsg); 
-    }
+    } 
 }
 
 // Core routine to send offline recorded audio blob to Flask for Whisper transcription
 async function performAudioSearch(audioBlob) {
     transcriptOutput.textContent = "Transcribing audio locally (offline)...";
     transcriptOutput.classList.add('placeholder-text');
-
+    
     try {
         const formData = new FormData();
         formData.append('audio', audioBlob, 'recording.webm');
@@ -126,7 +139,7 @@ async function performAudioSearch(audioBlob) {
         resultsOutput.innerHTML = `<div class="schedule-card error">⚠️ ${errorMsg}</div>`;
         resultsSection.classList.remove('hidden');
         speakText(errorMsg); 
-    }
+    } 
 }
 
 // Initialize microphone and MediaRecorder
@@ -236,14 +249,27 @@ function displayResults(data) {
                 const arrivalTime = schedule.arrival_time || 'N/A';
                 
                 pathHtml += `
-                    <div style="margin-left: 10px; border-left: 2px solid var(--primary-color); padding-left: 12px; margin-top: 10px; margin-bottom: 10px;">
-                        <strong>Leg ${legIndex + 1}:</strong> ${leg.source} ➔ ${leg.destination} <br>
-                        <strong>Service:</strong> ${transportType} | 
-                        <strong>Departure:</strong> ${departureTime} | 
-                        <strong>Arrival:</strong> ${arrivalTime}
+                    <div style="margin-left: 10px; border-left: 2px solid var(--primary-color); padding-left: 12px; margin-top: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <div>
+                            <strong>Leg ${legIndex + 1}:</strong> ${leg.source} ➔ ${leg.destination} <br>
+                            <strong>Service:</strong> ${transportType} | 
+                            <strong>Departure:</strong> ${departureTime} | 
+                            <strong>Arrival:</strong> ${arrivalTime} |
+                            <strong>Seats:</strong> ${schedule.available_seats || 0}
+                        </div>
+                        <div>
+                            <a href="/book/${schedule.schedule_id}" class="read-all-button" style="text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block; white-space: nowrap;">Book Leg</a>
+                        </div>
                     </div>
                 `;
             });
+            
+            const scheduleIds = path.legs.map(leg => leg.schedules[0].schedule_id).join(',');
+            pathHtml += `
+                <div style="text-align: right; margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 1rem;">
+                    <a href="/book-transit?schedules=${scheduleIds}" class="read-all-button" style="text-decoration: none; padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block;">Book Entire Journey</a>
+                </div>
+            `;
             
             card.innerHTML = pathHtml;
             resultsOutput.appendChild(card);
@@ -275,11 +301,18 @@ function displayResults(data) {
             const departureTime = schedule.departure_time || 'N/A';
             
             card.innerHTML = `
-                <strong>Route ID:</strong> ${schedule.route_id} | 
-                <strong>Service:</strong> ${transportType} <br>
-                <strong>Path:</strong> ${data.origin} ➔ ${data.destination} <br>
-                <strong>Departure:</strong> ${departureTime} | 
-                <strong>Status:</strong> Live on Schedule
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div>
+                        <strong>Route ID:</strong> ${schedule.route_id} | 
+                        <strong>Service:</strong> ${transportType} <br>
+                        <strong>Path:</strong> ${data.origin} ➔ ${data.destination} <br>
+                        <strong>Departure:</strong> ${departureTime} | 
+                        <strong>Seats:</strong> ${schedule.available_seats || 0}
+                    </div>
+                    <div>
+                        <a href="/book/${schedule.schedule_id}" class="read-all-button" style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block; white-space: nowrap;">Book Ticket</a>
+                    </div>
+                </div>
             `;
             resultsOutput.appendChild(card);
         });

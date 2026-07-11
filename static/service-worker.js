@@ -1,6 +1,5 @@
-const CACHE_NAME = 'voice-transport-v7';
+const CACHE_NAME = 'voice-transport-v9';
 const ASSETS = [
-  '/',
   '/static/css/style.css',
   '/static/js/main.js',
   '/static/manifest.json'
@@ -35,8 +34,19 @@ self.addEventListener('activate', event => {
 
 // Fetch Event
 self.addEventListener('fetch', event => {
-  // Only handle GET requests and skip search API requests
-  if (event.request.method !== 'GET' || event.request.url.includes('/search')) {
+  const url = new URL(event.request.url);
+  // Skip intercepting navigate page loads, root URL, search API, TTS stream, admin, and authentication routes
+  if (
+    event.request.method !== 'GET' ||
+    event.request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.pathname.includes('/search') ||
+    url.pathname.includes('/tts') ||
+    url.pathname.includes('/admin') ||
+    url.pathname.includes('/login') ||
+    url.pathname.includes('/signup') ||
+    url.pathname.includes('/logout')
+  ) {
     return;
   }
   

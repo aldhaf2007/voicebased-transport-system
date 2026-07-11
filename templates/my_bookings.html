@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#007bff">
+    <title>My Bookings - Voice Transport Gateway</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🎙️</text></svg>">
+    <style>
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+        }
+
+        .table-wrapper {
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.8);
+            color: #a5b4fc;
+            padding: 1rem;
+            text-align: left;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+    </style>
+</head>
+<body>
+
+<div class="transport-bg-logos">
+    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);">✈️</div>
+    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);">🚄</div>
+    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);">🚌</div>
+    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);">🚇</div>
+    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);">🚢</div>
+</div>
+
+
+
+
+    <div class="dashboard-container">
+        <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+            <h1>🎫 My Bookings</h1>
+            <a href="/" class="secondary-btn" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">← Back to Home</a>
+        </header>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Booking ID</th>
+                        <th>Passenger</th>
+                        <th>Route</th>
+                        <th>Travel Date</th>
+                        <th>Seats</th>
+                        <th>Booking Time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in bookings %}
+                        <tr>
+                            <td><strong>#{{ b.booking_id }}</strong></td>
+                            <td>{{ b.passenger_name }}<br><small style="color: var(--text-secondary);">{{ b.passenger_email }}</small></td>
+                            <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: #fbcfe8;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
+                            <td>{{ b.travel_date }}</td>
+                            <td>{{ b.seats_booked }}</td>
+                            <td>{{ b.booking_time }}</td>
+                            <td>
+                                {% if b.status == 'CANCELLED' %}
+                                    <span style="color: #fca5a5; font-weight: bold;">Cancelled</span>
+                                {% else %}
+                                    <button onclick="cancelBooking({{ b.booking_id }})" class="secondary-btn" style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.5rem 1rem; font-size: 0.8rem;">Cancel</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 2rem;">You have no active bookings.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function cancelBooking(bookingId) {
+            if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+                return;
+            }
+            try {
+                                const response = await fetch(`/cancel_booking/${bookingId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('Booking cancelled successfully.');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (e) {
+                alert('An error occurred while cancelling the booking.');
+            } 
+        }
+    </script>
+
+</body>
+</html>

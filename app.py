@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, Response, session, redirect, url_for, flash
+import os
 import spacy
 from rapidfuzz import process, fuzz
 import io
@@ -24,7 +25,16 @@ from database import (
     delete_route,
     add_schedule,
     update_schedule,
-    delete_schedule
+    delete_schedule,
+    get_schedule_by_id,
+    create_booking,
+    create_transit_bookings,
+    register_user,
+    authenticate_user,
+    get_all_users,
+    get_all_bookings,
+    get_user_bookings,
+    cancel_user_booking
 )
 
 # Initialize the Whisper model globally for offline speech recognition
@@ -48,8 +58,8 @@ try:
     sess_options.enable_mem_pattern = True
     sess_options.enable_cpu_mem_arena = True
     
-    session = ort.InferenceSession("kokoro-v1.0.onnx", sess_options, providers=["CPUExecutionProvider"])
-    kokoro_tts = Kokoro.from_session(session, "voices-v1.0.bin")
+    onnx_session = ort.InferenceSession("kokoro-v1.0.onnx", sess_options, providers=["CPUExecutionProvider"])
+    kokoro_tts = Kokoro.from_session(onnx_session, "voices-v1.0.bin")
     print("Kokoro TTS model loaded successfully with SessionOptions!")
 except Exception as e:
     print(f"Warning: Failed to load Kokoro model with SessionOptions: {e}. Falling back to default...")
@@ -60,6 +70,7 @@ except Exception as e:
         kokoro_tts = None
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "voice-transport-system-secret-key-129847")
 
 # Load the pre-trained English context model into memory globally
 nlp = spacy.load("en_core_web_sm")
@@ -374,13 +385,71 @@ def search_transport():
 # ADMIN DASHBOARD ROUTINGS & ENDPOINTS
 # ==========================================
 
+@app.before_request
+def check_admin_auth():
+    if request.path == "/admin" or request.path.startswith("/admin/"):
+        if not session.get("admin_logged_in"):
+            # For API routes starting with /admin/, return JSON error instead of redirect
+            if request.path != "/admin" and request.headers.get("Content-Type") == "application/json":
+                return jsonify({"error": "Admin authentication required"}), 401
+            return redirect(url_for("admin_login"))
+
+@app.route("/admin-login", methods=["GET", "POST"])
+def admin_login():
+    """Dedicated login route for the administrator."""
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        
+        expected_username = os.environ.get("ADMIN_USERNAME", "admin")
+        expected_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+        
+        if username == expected_username and password == expected_password:
+            session["admin_logged_in"] = True
+            flash("Successfully logged into the admin dashboard.", "success")
+            return redirect(url_for("admin_dashboard"))
+        else:
+            flash("Invalid admin credentials.", "error")
+            
+    return render_template("admin_login.html")
+
+@app.route("/admin-logout")
+def admin_logout():
+    """Logs out the administrator."""
+    session.pop("admin_logged_in", None)
+    flash("You have been logged out of the admin panel.", "success")
+    return redirect(url_for("index"))
+
+
 @app.route("/admin")
 def admin_dashboard():
     """Renders the interactive web panel for administrative data management."""
     stations = get_all_stations()
     routes = get_all_routes()
     schedules = get_all_schedules()
-    return render_template("admin.html", stations=stations, routes=routes, schedules=schedules)
+    users = get_all_users()
+    bookings = get_all_bookings()
+    
+    from datetime import datetime
+    active_bookings = []
+    expired_bookings = []
+    cancelled_bookings = []
+    today = datetime.now().date()
+    for b in bookings:
+        if b.get('status') == 'CANCELLED':
+            cancelled_bookings.append(b)
+            continue
+            
+        try:
+            b_date = datetime.strptime(b['travel_date'], "%d-%m-%Y").date()
+            if b_date >= today:
+                active_bookings.append(b)
+            else:
+                expired_bookings.append(b)
+        except ValueError:
+            active_bookings.append(b) # Fallback
+
+    return render_template("admin.html", stations=stations, routes=routes, schedules=schedules, users=users, active_bookings=active_bookings, expired_bookings=expired_bookings, cancelled_bookings=cancelled_bookings)
 
 
 @app.route("/admin/add-station", methods=["POST"])
@@ -584,6 +653,208 @@ def search_audio():
             }
         ), 500
 
+
+
+# ==========================================
+# USER SIGN UP, SIGN IN & SIGN OUT ROUTES
+# ==========================================
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if "user_id" in session:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        if request.is_json:
+            data = request.get_json() or {}
+            username = data.get("username", "")
+            email = data.get("email", "")
+            password = data.get("password", "")
+            success, msg = register_user(username, email, password)
+            if success:
+                return jsonify({"success": True, "message": msg})
+            return jsonify({"success": False, "message": msg}), 400
+        else:
+            username = request.form.get("username", "")
+            email = request.form.get("email", "")
+            password = request.form.get("password", "")
+            success, msg = register_user(username, email, password)
+            if success:
+                flash("Registration successful! Please log in.", "success")
+                return redirect(url_for("login"))
+            flash(msg, "error")
+
+    return render_template("signup.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if "user_id" in session:
+        return redirect(url_for("index"))
+
+    next_url = request.args.get("next", "")
+
+    if request.method == "POST":
+        if request.is_json:
+            data = request.get_json() or {}
+            username = data.get("username", "")
+            password = data.get("password", "")
+            user = authenticate_user(username, password)
+            if user:
+                session["user_id"] = user["user_id"]
+                session["username"] = user["username"]
+                return jsonify({"success": True, "message": "Login successful!"})
+            return jsonify({"success": False, "message": "Invalid username or password."}), 400
+        else:
+            username = request.form.get("username", "")
+            password = request.form.get("password", "")
+            user = authenticate_user(username, password)
+            if user:
+                session["user_id"] = user["user_id"]
+                session["username"] = user["username"]
+                flash("Logged in successfully!", "success")
+                if next_url:
+                    return redirect(next_url)
+                return redirect(url_for("index"))
+            flash("Invalid username or password.", "error")
+
+    return render_template("login.html", next=next_url)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out.", "success")
+    return redirect(url_for("index"))
+
+
+@app.route("/my_bookings")
+def my_bookings():
+    """
+    Renders the page for users to view their own bookings.
+    """
+    if "user_id" not in session:
+        flash("Please log in to view your bookings.", "error")
+        return redirect(url_for("login"))
+    
+    user_id = session["user_id"]
+    bookings = get_user_bookings(user_id)
+    return render_template("my_bookings.html", bookings=bookings)
+
+@app.route("/cancel_booking/<int:booking_id>", methods=["POST"])
+def cancel_booking_route(booking_id):
+    """Cancels a specific booking for the logged in user."""
+    if "user_id" not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    user_id = session["user_id"]
+    success, message = cancel_user_booking(booking_id, user_id)
+    return jsonify({"success": success, "message": message})
+
+@app.route("/book/<int:schedule_id>", methods=["GET"])
+def book_ticket_page(schedule_id):
+    """
+    Renders the ticket booking page for the specified schedule.
+    """
+    if "user_id" not in session:
+        return redirect(url_for("login", next=request.full_path))
+    schedule = get_schedule_by_id(schedule_id)
+    if not schedule:
+        return render_template("index.html"), 404
+    return render_template("booking.html", schedule=schedule)
+
+
+@app.route("/book", methods=["POST"])
+def perform_booking():
+    """
+    Executes the ticket booking transaction.
+    """
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized: Please log in first."}), 401
+    try:
+        data = request.get_json() or {}
+        schedule_id = data.get("schedule_id")
+        passenger_name = data.get("passenger_name", "").strip()
+        passenger_email = data.get("passenger_email", "").strip()
+        seats_booked = data.get("seats_booked")
+        travel_date = data.get("travel_date")
+
+        if not schedule_id or not passenger_name or not passenger_email or not seats_booked or not travel_date:
+            return jsonify({"error": "Missing required booking details."}), 400
+
+        success, booking_or_error = create_booking(
+            schedule_id, passenger_name, passenger_email, seats_booked, travel_date, user_id=session["user_id"]
+        )
+        if success:
+            return jsonify({"status": "Success", "booking": booking_or_error})
+        return jsonify({"error": booking_or_error}), 400
+    except Exception as e:
+        print(f"[Booking Route Error]: {str(e)}")
+        return jsonify({"error": "Failed to process booking."}), 500
+
+
+@app.route("/book-transit", methods=["GET"])
+def book_transit_page():
+    """
+    Renders the multi-leg transit journey booking page.
+    Expects comma-separated schedule IDs in query parameters (e.g. ?schedules=1,2).
+    """
+    if "user_id" not in session:
+        return redirect(url_for("login", next=request.full_path))
+    schedules_str = request.args.get("schedules", "")
+    if not schedules_str:
+        return render_template("index.html"), 400
+
+    try:
+        schedule_ids = [int(id.strip()) for id in schedules_str.split(",") if id.strip()]
+    except ValueError:
+        return render_template("index.html"), 400
+
+    schedules = []
+    min_available_seats = 99999
+    for s_id in schedule_ids:
+        schedule = get_schedule_by_id(s_id)
+        if not schedule:
+            return render_template("index.html"), 404
+        schedules.append(schedule)
+        if schedule["available_seats"] < min_available_seats:
+            min_available_seats = schedule["available_seats"]
+
+    return render_template(
+        "booking_transit.html",
+        schedules=schedules,
+        schedule_ids_str=schedules_str,
+        min_available_seats=min_available_seats
+    )
+
+
+@app.route("/book-transit", methods=["POST"])
+def perform_transit_booking():
+    """
+    Executes the multi-leg transit booking inside a single database transaction.
+    """
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized: Please log in first."}), 401
+    try:
+        data = request.get_json() or {}
+        schedule_ids = data.get("schedule_ids")
+        passenger_name = data.get("passenger_name", "").strip()
+        passenger_email = data.get("passenger_email", "").strip()
+        seats_booked = data.get("seats_booked")
+        travel_date = data.get("travel_date")
+
+        if not schedule_ids or not passenger_name or not passenger_email or not seats_booked or not travel_date:
+            return jsonify({"error": "Missing required transit booking details."}), 400
+
+        success, bookings_or_error = create_transit_bookings(
+            schedule_ids, passenger_name, passenger_email, seats_booked, travel_date, user_id=session["user_id"]
+        )
+        if success:
+            return jsonify({"status": "Success", "bookings": bookings_or_error})
+        return jsonify({"error": bookings_or_error}), 400
+    except Exception as e:
+        print(f"[Transit Booking Route Error]: {str(e)}")
+        return jsonify({"error": "Failed to process transit booking."}), 500
 
 
 if __name__ == "__main__":

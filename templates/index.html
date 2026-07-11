@@ -15,20 +15,42 @@
 </head>
 <body>
 
+<div class="transport-bg-logos">
+    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);">✈️</div>
+    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);">🚄</div>
+    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);">🚌</div>
+    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);">🚇</div>
+    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);">🚢</div>
+</div>
+
+
+
+
     <div class="dashboard-container">
         <header>
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; flex-wrap: wrap;">
                 <h1>🎙️ Voice Transport Gateway</h1>
-                <a href="/admin" style="color: #a5b4fc; text-decoration: none; font-size: 0.85rem; border: 1px solid var(--primary-color); padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.3s;" onmouseover="this.style.background='rgba(99,102,241,0.1)'" onmouseout="this.style.background='transparent'">⚙️ Admin Panel</a>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    {% if session.get('user_id') %}
+                        <span style="color: var(--text-secondary); font-size: 0.95rem;">Hi, <strong style="color: white; text-shadow: 0 0 10px rgba(255,255,255,0.4);">{{ session.get('username') }}</strong></span>
+                        <a href="/my_bookings" class="secondary-btn">My Bookings</a>
+                        <a href="/logout" class="secondary-btn" style="color: #fbcfe8; border-color: var(--accent-color);">Sign Out</a>
+                    {% else %}
+                        <a href="/login" class="secondary-btn">Sign In</a>
+                        <a href="/signup" class="secondary-btn" style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; border: none; border-top: 1px solid rgba(255,255,255,0.3); box-shadow: 0 5px 15px rgba(99,102,241,0.4);">Sign Up</a>
+                    {% endif %}
+                </div>
             </div>
             <p style="margin-top: 0.75rem;">Click the microphone and ask for route schedules (e.g., "Show trains from New Delhi to Mumbai")</p>
         </header>
 
         <main class="interaction-panel">
-            <button id="mic-btn" class="mic-button">
-                <span class="mic-icon">🎤</span>
-                <span id="mic-status">Click to Speak</span>
-            </button>
+            <div class="mic-button-wrapper">
+                <button id="mic-btn" class="mic-button">
+                    <span class="mic-icon">🎤</span>
+                    <span id="mic-status">Click to Speak</span>
+                </button>
+            </div>
 
             <div class="divider">
                 <span>OR</span>
@@ -54,6 +76,21 @@
         </section>
     </div>
 
+    <div class="scroll-buttons">
+        <button id="scroll-up-btn" class="scroll-btn" title="Scroll to Top">↑</button>
+        <button id="scroll-down-btn" class="scroll-btn" title="Scroll to Bottom">↓</button>
+    </div>
+
+    <audio id="tts-audio" style="display: none;"></audio>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        document.getElementById('scroll-up-btn').addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        document.getElementById('scroll-down-btn').addEventListener('click', () => {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        });
+    </script>
+
 </body>
 </html>

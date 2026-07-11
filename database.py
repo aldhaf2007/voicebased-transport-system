@@ -1,6 +1,7 @@
 import mysql.connector
 from neo4j import GraphDatabase
 import os
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # ==========================================
 # 1. DATABASE CONFIGURATION CONFIG
@@ -114,6 +115,7 @@ def query_transport_system(source, destination):
             format_strings = ", ".join(["%s"] * len(route_ids))
             sql_query = f"""
             SELECT 
+                s.schedule_id,
                 s.route_id, 
                 t.type AS transport_type, 
                 s.departure_time, 
@@ -150,6 +152,7 @@ def query_transport_system(source, destination):
                 
                 sql_query = """
                 SELECT 
+                    s.schedule_id,
                     s.route_id, 
                     t.type AS transport_type, 
                     s.departure_time, 
@@ -612,7 +615,524 @@ def delete_schedule(schedule_id):
 
 
 # ==========================================
+# 5. TICKET BOOKING MANAGEMENT
+# ==========================================
+def init_bookings_table():
+    """Creates the Bookings table in MySQL if it does not exist, and ensures travel_date exists."""
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        print("❌ MySQL Connection failed for database initialization.")
+        return
+    cursor = mysql_conn.cursor()
+    try:
+        create_table_query = """
+        CREATE TABLE IF NOT EXISTS Bookings (
+            booking_id INT PRIMARY KEY AUTO_INCREMENT,
+            schedule_id INT NOT NULL,
+            passenger_name VARCHAR(255) NOT NULL,
+            passenger_email VARCHAR(255) NOT NULL,
+            seats_booked INT NOT NULL DEFAULT 1,
+            booking_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (schedule_id) REFERENCES Schedules(schedule_id)
+        );
+        """
+        cursor.execute(create_table_query)
+        mysql_conn.commit()
+
+        # Ensure travel_date column exists
+        cursor.execute("SHOW COLUMNS FROM Bookings LIKE 'travel_date'")
+        if not cursor.fetchone():
+            print("Adding 'travel_date' column to Bookings table...")
+            cursor.execute("ALTER TABLE Bookings ADD COLUMN travel_date DATE")
+            mysql_conn.commit()
+
+        # Ensure status column exists
+        cursor.execute("SHOW COLUMNS FROM Bookings LIKE 'status'")
+        if not cursor.fetchone():
+            print("Adding 'status' column to Bookings table...")
+            cursor.execute("ALTER TABLE Bookings ADD COLUMN status VARCHAR(20) DEFAULT 'ACTIVE'")
+            mysql_conn.commit()
+            
+        print("✅ Bookings table checked/created in MySQL.")
+    except Exception as e:
+        print(f"❌ Error creating Bookings table: {e}")
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+def init_users_and_update_bookings():
+    """Creates the Users table and updates Bookings to include user_id if not present."""
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        print("❌ MySQL Connection failed for users database initialization.")
+        return
+    cursor = mysql_conn.cursor()
+    try:
+        # Create Users Table
+        create_users_query = """
+        CREATE TABLE IF NOT EXISTS Users (
+            user_id INT PRIMARY KEY AUTO_INCREMENT,
+            username VARCHAR(255) UNIQUE NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+        cursor.execute(create_users_query)
+        mysql_conn.commit()
+        print("✅ Users table checked/created in MySQL.")
+
+        # Ensure user_id column exists in Bookings table
+        cursor.execute("SHOW COLUMNS FROM Bookings LIKE 'user_id'")
+        if not cursor.fetchone():
+            print("Adding 'user_id' column to Bookings table...")
+            cursor.execute("ALTER TABLE Bookings ADD COLUMN user_id INT")
+            cursor.execute("ALTER TABLE Bookings ADD FOREIGN KEY (user_id) REFERENCES Users(user_id)")
+            mysql_conn.commit()
+            print("✅ 'user_id' column added to Bookings table.")
+    except Exception as e:
+        print(f"❌ Error initializing users/bookings database: {e}")
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+
+def get_schedule_by_id(schedule_id):
+    """Fetches a specific schedule from MySQL by its ID, including origin/destination stations."""
+    try:
+        schedule_id = int(schedule_id)
+    except ValueError:
+        return None
+
+    routes = get_all_routes()
+    routes_map = {r["route_id"]: (r["source"], r["destination"]) for r in routes}
+
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return None
+    cursor = mysql_conn.cursor(dictionary=True)
+    sql_query = """
+    SELECT 
+        s.schedule_id,
+        s.route_id, 
+        t.type AS transport_type, 
+        s.departure_time, 
+        s.arrival_time,  
+        s.available_seats 
+    FROM Schedules s
+    INNER JOIN Transport_Details t ON s.transport_id = t.transport_id
+    WHERE s.schedule_id = %s
+    """
+    try:
+        cursor.execute(sql_query, (schedule_id,))
+        row = cursor.fetchone()
+        if row:
+            route_id = row["route_id"]
+            source, destination = routes_map.get(route_id, ("Unknown", "Unknown"))
+            row["source"] = source
+            row["destination"] = destination
+            
+            import datetime
+            for key in ["departure_time", "arrival_time"]:
+                val = row[key]
+                if isinstance(val, (datetime.timedelta, datetime.time)):
+                    row[key] = str(val)
+            return row
+    except Exception as e:
+        print(f"❌ Error fetching schedule {schedule_id}: {e}")
+    finally:
+        cursor.close()
+        mysql_conn.close()
+    return None
+
+
+def create_booking(schedule_id, passenger_name, passenger_email, seats_booked, travel_date, user_id=None):
+    """
+    Creates a booking in MySQL.
+    1. Verifies if there are enough available seats in the schedule.
+    2. Decrements the available seats.
+    3. Inserts the booking entry.
+    Uses a transaction to ensure atomic execution.
+    """
+    try:
+        schedule_id = int(schedule_id)
+        seats_booked = int(seats_booked)
+    except ValueError:
+        return False, "Invalid schedule ID or seat count."
+
+    if seats_booked <= 0:
+        return False, "Seats booked must be at least 1."
+
+    if not travel_date:
+        return False, "Travel date is required."
+
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return False, "MySQL connection failed."
+    
+    mysql_conn.autocommit = False
+    cursor = mysql_conn.cursor(dictionary=True)
+    
+    try:
+        cursor.execute(
+            "SELECT available_seats FROM Schedules WHERE schedule_id = %s FOR UPDATE",
+            (schedule_id,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            mysql_conn.rollback()
+            return False, "Schedule not found."
+        
+        available = row["available_seats"]
+        if available < seats_booked:
+            mysql_conn.rollback()
+            return False, f"Not enough seats available. Requested: {seats_booked}, Available: {available}."
+        
+        new_seats = available - seats_booked
+        cursor.execute(
+            "UPDATE Schedules SET available_seats = %s WHERE schedule_id = %s",
+            (new_seats, schedule_id)
+        )
+        
+        insert_query = """
+        INSERT INTO Bookings (schedule_id, passenger_name, passenger_email, seats_booked, travel_date, user_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(insert_query, (schedule_id, passenger_name, passenger_email, seats_booked, travel_date, user_id))
+        booking_id = cursor.lastrowid
+        
+        mysql_conn.commit()
+        return True, {
+            "booking_id": booking_id,
+            "schedule_id": schedule_id,
+            "passenger_name": passenger_name,
+            "passenger_email": passenger_email,
+            "seats_booked": seats_booked,
+            "travel_date": str(travel_date),
+            "remaining_seats": new_seats,
+            "user_id": user_id
+        }
+    except Exception as e:
+        mysql_conn.rollback()
+        print(f"❌ Error creating booking: {e}")
+        return False, f"Booking transaction failed: {str(e)}"
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+
+def create_transit_bookings(schedule_ids, passenger_name, passenger_email, seats_booked, travel_date, user_id=None):
+    """
+    Creates multiple bookings for a transit journey inside a single MySQL transaction.
+    If any single leg fails (e.g. sold out), the entire transaction is rolled back.
+    """
+    if not schedule_ids:
+        return False, "No schedule IDs provided."
+
+    try:
+        seats_booked = int(seats_booked)
+    except ValueError:
+        return False, "Invalid seat count."
+
+    if seats_booked <= 0:
+        return False, "Seats booked must be at least 1."
+
+    if not travel_date:
+        return False, "Travel date is required."
+
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return False, "MySQL connection failed."
+    
+    mysql_conn.autocommit = False
+    cursor = mysql_conn.cursor(dictionary=True)
+    
+    bookings_created = []
+    try:
+        for s_id in schedule_ids:
+            try:
+                s_id = int(s_id)
+            except ValueError:
+                mysql_conn.rollback()
+                return False, f"Invalid schedule ID: {s_id}."
+
+            # Lock and check seats
+            cursor.execute(
+                "SELECT available_seats FROM Schedules WHERE schedule_id = %s FOR UPDATE",
+                (s_id,)
+            )
+            row = cursor.fetchone()
+            if not row:
+                mysql_conn.rollback()
+                return False, f"Schedule ID {s_id} not found."
+            
+            available = row["available_seats"]
+            if available < seats_booked:
+                mysql_conn.rollback()
+                return False, f"Not enough seats available on Schedule ID {s_id}. Requested: {seats_booked}, Available: {available}."
+            
+            # Update available seats
+            new_seats = available - seats_booked
+            cursor.execute(
+                "UPDATE Schedules SET available_seats = %s WHERE schedule_id = %s",
+                (new_seats, s_id)
+            )
+            
+            # Insert booking record
+            insert_query = """
+            INSERT INTO Bookings (schedule_id, passenger_name, passenger_email, seats_booked, travel_date, user_id)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (s_id, passenger_name, passenger_email, seats_booked, travel_date, user_id))
+            booking_id = cursor.lastrowid
+            
+            bookings_created.append({
+                "booking_id": booking_id,
+                "schedule_id": s_id,
+                "passenger_name": passenger_name,
+                "passenger_email": passenger_email,
+                "seats_booked": seats_booked,
+                "travel_date": str(travel_date),
+                "remaining_seats": new_seats,
+                "user_id": user_id
+            })
+            
+        mysql_conn.commit()
+        return True, bookings_created
+    except Exception as e:
+        mysql_conn.rollback()
+        print(f"❌ Error creating transit bookings: {e}")
+        return False, f"Transit booking transaction failed: {str(e)}"
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+
+# Automatically initialize the bookings table on module load
+init_bookings_table()
+init_users_and_update_bookings()
+
+
+# ==========================================
+# 6. USER AUTHENTICATION & MANAGEMENT
+# ==========================================
+def register_user(username, email, password):
+    """Registers a new user in the database."""
+    username = username.strip()
+    email = email.strip()
+    password = password.strip()
+    if not username or not email or not password:
+        return False, "All fields are required."
+
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return False, "Database connection failed."
+    cursor = mysql_conn.cursor()
+    try:
+        # Check if username already exists
+        cursor.execute("SELECT user_id FROM Users WHERE username = %s", (username,))
+        if cursor.fetchone():
+            return False, "Username is already taken."
+
+        # Insert user
+        password_hash = generate_password_hash(password)
+        sql = "INSERT INTO Users (username, email, password_hash) VALUES (%s, %s, %s)"
+        cursor.execute(sql, (username, email, password_hash))
+        mysql_conn.commit()
+        return True, "User registered successfully."
+    except Exception as e:
+        print(f"❌ Error registering user: {e}")
+        return False, f"Failed to register user: {str(e)}"
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+
+def authenticate_user(username, password):
+    """Authenticates a user and returns their user data if successful."""
+    username = username.strip()
+    password = password.strip()
+    if not username or not password:
+        return None
+
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return None
+    cursor = mysql_conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT user_id, username, email, password_hash FROM Users WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        if user and check_password_hash(user["password_hash"], password):
+            # Remove hash before returning
+            user.pop("password_hash")
+            return user
+    except Exception as e:
+        print(f"❌ Error authenticating user: {e}")
+    finally:
+        cursor.close()
+        mysql_conn.close()
+    return None
+
+
+def get_all_users():
+    """Fetches all registered users from MySQL."""
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return []
+    cursor = mysql_conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT user_id, username, email, created_at FROM Users ORDER BY created_at DESC")
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"❌ Error fetching users: {e}")
+        return []
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+
+def get_all_bookings():
+    """Fetches all bookings along with their schedule details."""
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return []
+    cursor = mysql_conn.cursor(dictionary=True)
+    try:
+        query = """
+        SELECT b.booking_id, b.passenger_name, b.passenger_email, b.seats_booked, 
+               b.travel_date, b.booking_time, b.user_id, b.status, s.route_id, t.type AS transport_type, 
+               s.departure_time, s.arrival_time
+        FROM Bookings b
+        JOIN Schedules s ON b.schedule_id = s.schedule_id
+        JOIN Transport_Details t ON s.transport_id = t.transport_id
+        ORDER BY b.booking_time DESC
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+
+        routes = get_all_routes()
+        routes_map = {r["route_id"]: (r["source"], r["destination"]) for r in routes}
+
+        import datetime
+        for row in rows:
+            route_id = row["route_id"]
+            source, destination = routes_map.get(route_id, ("Unknown", "Unknown"))
+            row["source"] = source
+            row["destination"] = destination
+            
+            if isinstance(row["travel_date"], datetime.date):
+                row["travel_date"] = row["travel_date"].strftime("%d-%m-%Y")
+            if isinstance(row["booking_time"], datetime.datetime):
+                row["booking_time"] = row["booking_time"].strftime("%d-%m-%Y %H:%M")
+            for key in ["departure_time", "arrival_time"]:
+                if isinstance(row[key], (datetime.timedelta, datetime.time)):
+                    row[key] = str(row[key])
+
+        return rows
+    except Exception as e:
+        print(f"❌ Error fetching bookings: {e}")
+        return []
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+
+# ==========================================
 # 5. ISOLATED LOCAL TEST BENCH
+# ==========================================
+def get_user_bookings(user_id):
+    """Fetches all bookings for a specific user."""
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return []
+    cursor = mysql_conn.cursor(dictionary=True)
+    try:
+        query = """
+        SELECT b.booking_id, b.passenger_name, b.passenger_email, b.seats_booked, 
+               b.travel_date, b.booking_time, b.user_id, b.status, s.route_id, t.type AS transport_type, 
+               s.departure_time, s.arrival_time
+        FROM Bookings b
+        JOIN Schedules s ON b.schedule_id = s.schedule_id
+        JOIN Transport_Details t ON s.transport_id = t.transport_id
+        WHERE b.user_id = %s
+        ORDER BY b.booking_time DESC
+        """
+        cursor.execute(query, (user_id,))
+        rows = cursor.fetchall()
+
+        routes = get_all_routes()
+        routes_map = {r["route_id"]: (r["source"], r["destination"]) for r in routes}
+
+        import datetime
+        for row in rows:
+            route_id = row["route_id"]
+            source, destination = routes_map.get(route_id, ("Unknown", "Unknown"))
+            row["source"] = source
+            row["destination"] = destination
+            
+            if isinstance(row["travel_date"], datetime.date):
+                row["travel_date"] = row["travel_date"].strftime("%d-%m-%Y")
+            if isinstance(row["booking_time"], datetime.datetime):
+                row["booking_time"] = row["booking_time"].strftime("%d-%m-%Y %H:%M")
+            for key in ["departure_time", "arrival_time"]:
+                if isinstance(row[key], (datetime.timedelta, datetime.time)):
+                    row[key] = str(row[key])
+
+        return rows
+    except Exception as e:
+        print(f"❌ Error fetching bookings for user {user_id}: {e}")
+        return []
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+def cancel_user_booking(booking_id, user_id):
+    """Cancels a user booking, restoring available seats in the schedule."""
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return False, "Database connection failed."
+    
+    mysql_conn.autocommit = False
+    cursor = mysql_conn.cursor(dictionary=True)
+    try:
+        # Check if booking exists and belongs to user
+        cursor.execute(
+            "SELECT schedule_id, seats_booked FROM Bookings WHERE booking_id = %s AND user_id = %s FOR UPDATE",
+            (booking_id, user_id)
+        )
+        booking = cursor.fetchone()
+        
+        if not booking:
+            mysql_conn.rollback()
+            return False, "Booking not found or access denied."
+            
+        schedule_id = booking['schedule_id']
+        seats_booked = booking['seats_booked']
+        
+        # Restore seats
+        cursor.execute(
+            "UPDATE Schedules SET available_seats = available_seats + %s WHERE schedule_id = %s",
+            (seats_booked, schedule_id)
+        )
+        
+        # Mark booking as cancelled
+        cursor.execute(
+            "UPDATE Bookings SET status = 'CANCELLED' WHERE booking_id = %s",
+            (booking_id,)
+        )
+        
+        mysql_conn.commit()
+        return True, "Booking cancelled successfully."
+    except Exception as e:
+        mysql_conn.rollback()
+        print(f"❌ Error cancelling booking {booking_id}: {e}")
+        return False, f"Error cancelling booking: {str(e)}"
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+# ==========================================
+# 6. ISOLATED LOCAL TEST BENCH
 # ==========================================
 if __name__ == "__main__":
     # Test your connection and querying directly before creating Flask files
