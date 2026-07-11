@@ -61,6 +61,7 @@
         }
 
         .form-input {
+            color-scheme: dark;
             background: rgba(0, 0, 0, 0.2);
             border: 1px solid var(--card-border);
             border-radius: 8px;
@@ -76,6 +77,16 @@
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px var(--primary-glow);
             background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Fix calendar icon visibility on dark backgrounds */
+        .form-input::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        
+        .form-input::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
         }
 
         .submit-booking-btn {
@@ -209,12 +220,12 @@
                 
                 <div class="form-group">
                     <label for="passenger-name">Passenger Name</label>
-                    <input type="text" id="passenger-name" class="form-input" placeholder="e.g. Jane Doe" required autocomplete="name">
+                    <input type="text" id="passenger-name" class="form-input" placeholder="e.g. Jane Doe" value="{{ session.get('username', '') }}" required autocomplete="name">
                 </div>
 
                 <div class="form-group">
                     <label for="passenger-email">Email Address</label>
-                    <input type="email" id="passenger-email" class="form-input" placeholder="e.g. jane.doe@example.com" required autocomplete="email">
+                    <input type="email" id="passenger-email" class="form-input" placeholder="e.g. jane.doe@example.com" value="{{ session.get('user_email', '') }}" required autocomplete="email">
                 </div>
 
                 <div class="form-group">
@@ -233,12 +244,11 @@
     </div>
 
     <script>
-        // Set default date input to tomorrow's date
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const yyyy = tomorrow.getFullYear();
-        const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-        const dd = String(tomorrow.getDate()).padStart(2, '0');
+        // Set default date input to today's date
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
         const travelDateEl = document.getElementById('travel-date');
         travelDateEl.value = `${yyyy}-${mm}-${dd}`;
         travelDateEl.min = `${yyyy}-${mm}-${dd}`;

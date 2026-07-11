@@ -13,10 +13,12 @@ A state-of-the-art, fully offline, voice-controlled transport search system. It 
 5. **Polyglot Database Engine**:
    * **Neo4j Graph Database**: Handles station topology, connectivity paths, and station-to-station traversals.
    * **MySQL Relational Database**: Manages scheduled schedules, transport types, prices, timings, and real-time seat capacities.
-6. **User Authentication & Ticket Booking**: Complete user signup/login flows integrated with real-time capacity-checking algorithms, allowing users to browse schedules, manage bookings securely, and cancel tickets dynamically.
+6. **User Authentication & Ticket Booking**: Complete user signup/login flows integrated with real-time capacity-checking algorithms. Users can browse schedules, manage their bookings, and cancel tickets dynamically. Booking forms automatically populate authenticated user details.
 7. **Multi-Leg Transit Routing**: Automatically resolves connecting paths when direct paths are unavailable, creating an aggregated single-transaction multi-leg booking cart experience.
 8. **Administrative Command Center**: A protected web-interface for transport operators to run CRUD actions on stations, routes, and schedules in real-time.
 9. **Modern Interface**: Designed with premium dark-mode styles, responsive CSS grid layouts, micro-animations, and offline fallback caching via a Service Worker.
+10. **Smart Browser Caching**: The frontend leverages Web Performance API and `sessionStorage` to preserve complex search query results during back/forward navigation without unnecessary database re-queries, while ensuring a clean state upon manual page reloads.
+11. **Instant Boot Backend Architecture**: The heavy AI modules (Whisper, Kokoro, spaCy) are proxied using custom `LazyLoader` components, ensuring instant Flask server startup times and deferred ML loading strictly on the first inference request.
 
 ---
 
@@ -49,6 +51,7 @@ graph TD
 * **Databases**:
   * Neo4j (Graph Network Topology)
   * MySQL (Real-time Schedules & Capacities)
+* **Security**: Parameterized SQL queries for prevention of SQL injection; encrypted password hashing for User Accounts.
 * **Web Frontend**: Vanilla HTML5, CSS3 Custom Properties, Vanilla JavaScript, Service Worker (PWA-enabled)
 * **Testing Suite**: Python `unittest`, `unittest.mock`
 
@@ -78,6 +81,19 @@ CREATE TABLE Schedules (
     arrival_time TIME,
     available_seats INT,
     FOREIGN KEY (transport_id) REFERENCES Transport_Details(transport_id)
+);
+
+CREATE TABLE Bookings (
+    booking_id INT PRIMARY KEY AUTO_INCREMENT,
+    schedule_id INT NOT NULL,
+    passenger_name VARCHAR(100),
+    passenger_email VARCHAR(100),
+    seats_booked INT NOT NULL,
+    travel_date DATE,
+    status VARCHAR(20) DEFAULT 'ACTIVE',
+    user_id INT,
+    FOREIGN KEY (schedule_id) REFERENCES Schedules(schedule_id),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 ```
 

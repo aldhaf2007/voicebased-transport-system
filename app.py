@@ -37,43 +37,73 @@ from database import (
     cancel_user_booking
 )
 
-# Initialize the Whisper model globally for offline speech recognition
-try:
-    print("Loading Whisper tiny model...")
-    whisper_model = whisper.load_model("tiny")
-    print("Whisper model loaded successfully!")
-except Exception as e:
-    print(f"Warning: Failed to load Whisper model: {e}. Offline speech search will be unavailable.")
-    whisper_model = None
-
-# Initialize the Kokoro TTS model globally for offline speech synthesis with optimized SessionOptions
-try:
-    print("Loading Kokoro TTS model (kokoro-v1.0.onnx) with optimized SessionOptions...")
-    sess_options = ort.SessionOptions()
-    # Optimize threads to avoid scheduler overhead and minimize latency
-    sess_options.intra_op_num_threads = 4
-    sess_options.inter_op_num_threads = 1
-    sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
-    sess_options.enable_mem_pattern = True
-    sess_options.enable_cpu_mem_arena = True
+class LazyLoader:
+    def __init__(self, loader_func):
+        self._loader = loader_func
+        self._model = None
+        self._loaded = False
     
-    onnx_session = ort.InferenceSession("kokoro-v1.0.onnx", sess_options, providers=["CPUExecutionProvider"])
-    kokoro_tts = Kokoro.from_session(onnx_session, "voices-v1.0.bin")
-    print("Kokoro TTS model loaded successfully with SessionOptions!")
-except Exception as e:
-    print(f"Warning: Failed to load Kokoro model with SessionOptions: {e}. Falling back to default...")
+    def _ensure_loaded(self):
+        if not self._loaded:
+            self._model = self._loader()
+            self._loaded = True
+            
+    def __getattr__(self, name):
+        self._ensure_loaded()
+        if self._model is None:
+            raise AttributeError(f"Model failed to load, cannot access {name}")
+        return getattr(self._model, name)
+        
+    def __call__(self, *args, **kwargs):
+        self._ensure_loaded()
+        if self._model is None:
+            raise RuntimeError("Model failed to load, cannot be called")
+        return self._model(*args, **kwargs)
+        
+    def __bool__(self):
+        self._ensure_loaded()
+        return self._model is not None
+
+def _load_whisper():
     try:
-        kokoro_tts = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
-    except Exception as ex:
-        print(f"Warning: Failed to load Kokoro model: {ex}. Voice synthesis will be unavailable.")
-        kokoro_tts = None
+        print("Loading Whisper tiny model...")
+        model = whisper.load_model("tiny")
+        print("Whisper model loaded successfully!")
+        return model
+    except Exception as e:
+        print(f"Warning: Failed to load Whisper model: {e}")
+        return None
+
+def _load_kokoro():
+    try:
+        print("Loading Kokoro TTS model (kokoro-v1.0.onnx)...")
+        sess_options = ort.SessionOptions()
+        sess_options.intra_op_num_threads = 4
+        sess_options.inter_op_num_threads = 1
+        sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        sess_options.enable_mem_pattern = True
+        sess_options.enable_cpu_mem_arena = True
+        onnx_session = ort.InferenceSession("kokoro-v1.0.onnx", sess_options, providers=["CPUExecutionProvider"])
+        model = Kokoro.from_session(onnx_session, "voices-v1.0.bin")
+        print("Kokoro TTS model loaded successfully!")
+        return model
+    except Exception as e:
+        print(f"Warning: Failed to load Kokoro model: {e}")
+        try:
+            return Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
+        except Exception:
+            return None
+
+def _load_spacy():
+    return spacy.load("en_core_web_sm")
+
+whisper_model = LazyLoader(_load_whisper)
+kokoro_tts = LazyLoader(_load_kokoro)
+nlp = LazyLoader(_load_spacy)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "voice-transport-system-secret-key-129847")
-
-# Load the pre-trained English context model into memory globally
-nlp = spacy.load("en_core_web_sm")
 
 # Master list of valid database station names, loaded dynamically from get_all_stations
 VALID_STATIONS = []
@@ -703,6 +733,7 @@ def login():
             if user:
                 session["user_id"] = user["user_id"]
                 session["username"] = user["username"]
+                session["user_email"] = user["email"]
                 return jsonify({"success": True, "message": "Login successful!"})
             return jsonify({"success": False, "message": "Invalid username or password."}), 400
         else:
@@ -712,6 +743,7 @@ def login():
             if user:
                 session["user_id"] = user["user_id"]
                 session["username"] = user["username"]
+                session["user_email"] = user["email"]
                 flash("Logged in successfully!", "success")
                 if next_url:
                     return redirect(next_url)

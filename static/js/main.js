@@ -221,7 +221,7 @@ textInputForm.addEventListener('submit', async (event) => {
 });
 
 // Render returned database layout lists and announce outcomes
-function displayResults(data) {
+function displayResults(data, isRestore=false) {
     resultsOutput.innerHTML = "";
     resultsSection.classList.remove('hidden');
     currentResultsData = null;
@@ -340,12 +340,52 @@ function displayResults(data) {
     }
 
     // Play pre-generated base64 audio instantly, or fallback to HTTP TTS synthesis
-    if (data.audio_base64) {
-        CustomSpeechEngine.playBase64(data.audio_base64);
-    } else if (textToSpeak) {
-        speakText(textToSpeak);
+    if (!isRestore) {
+        if (data.audio_base64) {
+            CustomSpeechEngine.playBase64(data.audio_base64);
+        } else if (textToSpeak) {
+            speakText(textToSpeak);
+        }
+    }
+    
+    // Save state for back navigation
+    sessionStorage.setItem('lastSearchResults', JSON.stringify(data));
+    sessionStorage.setItem('lastSearchTranscript', transcriptOutput.textContent);
+}
+
+// State restoration logic
+function restoreSearchState() {
+    // If the user manually reloads the page, wipe the saved state so they get a fresh search interface
+    const navEntries = performance.getEntriesByType("navigation");
+    if (navEntries.length > 0 && navEntries[0].type === "reload") {
+        sessionStorage.removeItem('lastSearchResults');
+        sessionStorage.removeItem('lastSearchTranscript');
+        return;
+    }
+
+    const savedData = sessionStorage.getItem('lastSearchResults');
+    const savedTranscript = sessionStorage.getItem('lastSearchTranscript');
+    if (savedData && savedTranscript) {
+        transcriptOutput.textContent = savedTranscript;
+        transcriptOutput.classList.remove('placeholder-text');
+        try {
+            const data = JSON.parse(savedData);
+            displayResults(data, true);
+        } catch (e) {
+            console.error('Error restoring session state:', e);
+        }
     }
 }
+
+// Restore results from sessionStorage on page load
+window.addEventListener('DOMContentLoaded', restoreSearchState);
+
+// Also restore on pageshow to handle browser back-button caching
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        restoreSearchState();
+    }
+});
 
 // Click handler for Read All button to voice all results on demand
 readAllBtn.addEventListener('click', () => {
