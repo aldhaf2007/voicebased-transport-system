@@ -51,7 +51,8 @@ try:
     print("Loading Kokoro TTS model (kokoro-v1.0.onnx) with optimized SessionOptions...")
     sess_options = ort.SessionOptions()
     # Optimize threads to avoid scheduler overhead and minimize latency
-    sess_options.intra_op_num_threads = 4
+    import os
+    sess_options.intra_op_num_threads = os.cpu_count() or 4
     sess_options.inter_op_num_threads = 1
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
     sess_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
@@ -349,24 +350,9 @@ def search_transport():
         verbal_summary = build_verbal_summary(search_results)
         search_results["verbal_summary"] = verbal_summary
 
-        # Pre-synthesize the voice summary into base64 audio to enable instantaneous playback
-        audio_base64 = ""
-        if kokoro_tts and verbal_summary:
-            try:
-                samples, sample_rate = kokoro_tts.create(
-                    verbal_summary, 
-                    voice="af_sarah", 
-                    speed=1.3, 
-                    lang="en-us"
-                )
-                wav_io = io.BytesIO()
-                sf.write(wav_io, samples, sample_rate, format="WAV")
-                wav_io.seek(0)
-                audio_base64 = base64.b64encode(wav_io.read()).decode("utf-8")
-            except Exception as e:
-                print(f"⚠️ Pre-TTS generation error: {e}")
-
-        search_results["audio_base64"] = audio_base64
+        # Omit synchronous offline TTS generation to prevent blocking the search response.
+        # Frontend will automatically fetch audio asynchronously via the /tts endpoint.
+        search_results["audio_base64"] = None
 
         # Send unified response array back to browser client web panel
         return jsonify(search_results)
@@ -562,7 +548,7 @@ def text_to_speech():
         samples, sample_rate = kokoro_tts.create(
             text, 
             voice="af_sarah", 
-            speed=1.3, 
+            speed=1.6, 
             lang="en-us"
         )
         
@@ -766,6 +752,60 @@ def book_ticket_page(schedule_id):
     return render_template("booking.html", schedule=schedule)
 
 
+def save_booking_to_file(booking, username):
+    """
+    Saves details of a booking to a local text file inside a folder named after the user.
+    """
+    try:
+        # Clean the username to avoid path traversal / invalid directory name issues
+        safe_username = "".join(c for c in username if c.isalnum() or c in (' ', '_', '-')).strip()
+        if not safe_username:
+            safe_username = "default_user"
+        
+        # Folder is named after the user, created locally in the project root
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        folder_path = os.path.join(app_dir, safe_username)
+        
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path, exist_ok=True)
+            
+        booking_id = booking.get("booking_id")
+        file_path = os.path.join(folder_path, f"booking_{booking_id}.txt")
+        
+        schedule_id = booking.get("schedule_id")
+        schedule_info = get_schedule_by_id(schedule_id) if schedule_id else None
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write("==================================================\n")
+            f.write("             TICKET BOOKING DETAILS               \n")
+            f.write("==================================================\n")
+            f.write(f"Booking ID:      {booking_id}\n")
+            f.write(f"User / Account:  {username}\n")
+            f.write(f"Passenger Name:  {booking.get('passenger_name')}\n")
+            f.write(f"Passenger Email: {booking.get('passenger_email')}\n")
+            f.write(f"Seats Booked:    {booking.get('seats_booked')}\n")
+            f.write(f"Travel Date:     {booking.get('travel_date')}\n")
+            f.write("--------------------------------------------------\n")
+            f.write("                 JOURNEY INFO                     \n")
+            f.write("--------------------------------------------------\n")
+            if schedule_info:
+                f.write(f"Schedule ID:     {schedule_id}\n")
+                f.write(f"Route:           {schedule_info.get('source')} -> {schedule_info.get('destination')}\n")
+                f.write(f"Transport Type:  {schedule_info.get('transport_type')}\n")
+                f.write(f"Departure Time:  {schedule_info.get('departure_time')}\n")
+                f.write(f"Arrival Time:    {schedule_info.get('arrival_time')}\n")
+            else:
+                f.write(f"Schedule ID:     {schedule_id}\n")
+                f.write("Schedule details not available.\n")
+            f.write("==================================================\n")
+            f.write("Thank you for booking with Voice Transport System!\n")
+            f.write("==================================================\n")
+        return True
+    except Exception as e:
+        print(f"Error saving booking to file: {e}")
+        return False
+
+
 @app.route("/book", methods=["POST"])
 def perform_booking():
     """
@@ -788,6 +828,8 @@ def perform_booking():
             schedule_id, passenger_name, passenger_email, seats_booked, travel_date, user_id=session["user_id"]
         )
         if success:
+            username = session.get("username", passenger_name)
+            save_booking_to_file(booking_or_error, username)
             return jsonify({"status": "Success", "booking": booking_or_error})
         return jsonify({"error": booking_or_error}), 400
     except Exception as e:
@@ -852,6 +894,9 @@ def perform_transit_booking():
             schedule_ids, passenger_name, passenger_email, seats_booked, travel_date, user_id=session["user_id"]
         )
         if success:
+            username = session.get("username", passenger_name)
+            for booking in bookings_or_error:
+                save_booking_to_file(booking, username)
             return jsonify({"status": "Success", "bookings": bookings_or_error})
         return jsonify({"error": bookings_or_error}), 400
     except Exception as e:

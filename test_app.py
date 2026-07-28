@@ -11,6 +11,13 @@ class TestVoiceTransportSystem(unittest.TestCase):
         self.app = app.test_client()
         self.app.testing = True
 
+    def tearDown(self):
+        import shutil
+        import os
+        test_user_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "testuser")
+        if os.path.exists(test_user_dir):
+            shutil.rmtree(test_user_dir)
+
     def test_nlp_extraction(self):
         """Test NLP boundary extraction logic for various query formats."""
         test_cases = [
@@ -242,6 +249,18 @@ class TestVoiceTransportSystem(unittest.TestCase):
         self.assertEqual(data["status"], "Success")
         self.assertEqual(data["booking"]["booking_id"], 42)
 
+        # Assert local ticket details file creation
+        import os
+        expected_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "testuser", "booking_42.txt")
+        self.assertTrue(os.path.exists(expected_path))
+        with open(expected_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertIn("Booking ID:      42", content)
+            self.assertIn("User / Account:  testuser", content)
+            self.assertIn("Passenger Name:  John Doe", content)
+            self.assertIn("Passenger Email: john@example.com", content)
+            self.assertIn("Seats Booked:    2", content)
+
         # Failure booking (insufficient seats)
         mock_create.return_value = (False, "Not enough seats available.")
         response_fail = self.app.post("/book", json=payload)
@@ -326,6 +345,21 @@ class TestVoiceTransportSystem(unittest.TestCase):
         self.assertEqual(data["status"], "Success")
         self.assertEqual(len(data["bookings"]), 2)
         self.assertEqual(data["bookings"][0]["booking_id"], 100)
+
+        # Assert local transit ticket details files creation
+        import os
+        expected_path1 = os.path.join(os.path.abspath(os.path.dirname(__file__)), "testuser", "booking_100.txt")
+        expected_path2 = os.path.join(os.path.abspath(os.path.dirname(__file__)), "testuser", "booking_101.txt")
+        self.assertTrue(os.path.exists(expected_path1))
+        self.assertTrue(os.path.exists(expected_path2))
+        with open(expected_path1, "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertIn("Booking ID:      100", content)
+            self.assertIn("Passenger Name:  John Doe", content)
+        with open(expected_path2, "r", encoding="utf-8") as f:
+            content = f.read()
+            self.assertIn("Booking ID:      101", content)
+            self.assertIn("Passenger Name:  John Doe", content)
 
         # Failure transit booking
         mock_create_transit.return_value = (False, "Not enough seats available on Schedule ID 2.")

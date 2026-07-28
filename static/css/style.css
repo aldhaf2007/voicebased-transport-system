@@ -710,7 +710,7 @@ header p {
 .bg-logo {
     position: absolute;
     font-size: 8rem;
-    opacity: 0.03;
+    opacity: 0.80;
     user-select: none;
 }
 

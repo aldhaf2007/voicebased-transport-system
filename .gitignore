@@ -15,3 +15,12 @@ Thumbs.db
 # Kokoro TTS models and voice assets
 *.onnx
 *.bin
+
+# LibreOffice / MS Office Lock Files
+.~lock.*
+~$*
+
+# Passenger booking directories
+/testuser/
+/aldhaf/
+
