@@ -101,8 +101,7 @@ async function performQuerySearch(queryString) {
 
     } catch (error) {
         console.error("Transmission Error:", error);
-        const errorMsg = "Gateway Timeout: Failed to reach backend orchestration router.";
-        resultsOutput.innerHTML = `<div class="schedule-card" style="color:red;">${errorMsg}</div>`;
+        resultsOutput.innerHTML = `<div class="schedule-card error"><i data-lucide="alert-triangle" class="btn-icon" style="margin-right: 6px; color: var(--error-color);"></i> ${errorMsg}</div>`;
         resultsSection.classList.remove('hidden');
         speakText(errorMsg); 
     } 
@@ -135,8 +134,7 @@ async function performAudioSearch(audioBlob) {
 
     } catch (error) {
         console.error("Audio Processing Error:", error);
-        const errorMsg = "Error: Failed to process local speech recognition on the server.";
-        resultsOutput.innerHTML = `<div class="schedule-card error">⚠️ ${errorMsg}</div>`;
+        resultsOutput.innerHTML = `<div class="schedule-card error"><i data-lucide="alert-triangle" class="btn-icon" style="margin-right: 6px;"></i> ${errorMsg}</div>`;
         resultsSection.classList.remove('hidden');
         speakText(errorMsg); 
     } 
@@ -178,8 +176,9 @@ async function initMicrophone() {
         const errorMsg = "Microphone access blocked. Please check browser and system permissions.";
         transcriptOutput.textContent = errorMsg;
         transcriptOutput.classList.add('placeholder-text');
-        resultsOutput.innerHTML = `<div class="schedule-card error">⚠️ ${errorMsg}</div>`;
+        resultsOutput.innerHTML = `<div class="schedule-card error"><i data-lucide="alert-triangle" class="btn-icon" style="margin-right: 6px;"></i> ${errorMsg}</div>`;
         resultsSection.classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
         speakText(errorMsg);
         return false;
     }
@@ -228,7 +227,7 @@ function displayResults(data, isRestore=false) {
     let textToSpeak = null;
 
     if (data.error) {
-        resultsOutput.innerHTML = `<div class="schedule-card error">⚠️ ${data.error}</div>`;
+        resultsOutput.innerHTML = `<div class="schedule-card error"><i data-lucide="alert-triangle" class="btn-icon" style="margin-right: 6px;"></i> ${data.error}</div>`;
         textToSpeak = data.error;
         return;
     }
@@ -240,7 +239,7 @@ function displayResults(data, isRestore=false) {
             const card = document.createElement('div');
             card.className = 'schedule-card';
             
-            let pathHtml = `<strong style="color: #a5b4fc; font-size: 1.05rem;">🗺️ Transit Route Option ${pathIndex + 1}:</strong><br>`;
+            let pathHtml = `<strong style="color: var(--primary-color); font-size: 1.05rem;"><i data-lucide="route" class="btn-icon" style="margin-right: 6px;"></i> Transit Route Option ${pathIndex + 1}:</strong><br>`;
             
             path.legs.forEach((leg, legIndex) => {
                 const schedule = leg.schedules[0];
@@ -251,14 +250,14 @@ function displayResults(data, isRestore=false) {
                 pathHtml += `
                     <div style="margin-left: 10px; border-left: 2px solid var(--primary-color); padding-left: 12px; margin-top: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
                         <div>
-                            <strong>Leg ${legIndex + 1}:</strong> ${leg.source} ➔ ${leg.destination} <br>
+                            <strong>Leg ${legIndex + 1}:</strong> ${leg.source} <i data-lucide="arrow-right" class="btn-icon" style="margin: 0 4px; width: 14px; height: 14px; vertical-align: middle;"></i> ${leg.destination} <br>
                             <strong>Service:</strong> ${transportType} | 
                             <strong>Departure:</strong> ${departureTime} | 
                             <strong>Arrival:</strong> ${arrivalTime} |
                             <strong>Seats:</strong> ${schedule.available_seats || 0}
                         </div>
                         <div>
-                            <a href="/book/${schedule.schedule_id}" class="read-all-button" style="text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block; white-space: nowrap;">Book Leg</a>
+                            <a href="/book/${schedule.schedule_id}" class="read-all-button" style="text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block; white-space: nowrap;"><i data-lucide="ticket" class="btn-icon" style="margin-right: 4px;"></i> Book Leg</a>
                         </div>
                     </div>
                 `;
@@ -266,8 +265,8 @@ function displayResults(data, isRestore=false) {
             
             const scheduleIds = path.legs.map(leg => leg.schedules[0].schedule_id).join(',');
             pathHtml += `
-                <div style="text-align: right; margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 1rem;">
-                    <a href="/book-transit?schedules=${scheduleIds}" class="read-all-button" style="text-decoration: none; padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block;">Book Entire Journey</a>
+                <div style="text-align: right; margin-top: 1.25rem; border-top: 1px solid rgba(99,102,241,0.1); padding-top: 1rem;">
+                    <a href="/book-transit?schedules=${scheduleIds}" class="read-all-button" style="text-decoration: none; padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block;"><i data-lucide="ticket" class="btn-icon" style="margin-right: 6px;"></i> Book Entire Journey</a>
                 </div>
             `;
             
@@ -305,12 +304,12 @@ function displayResults(data, isRestore=false) {
                     <div>
                         <strong>Route ID:</strong> ${schedule.route_id} | 
                         <strong>Service:</strong> ${transportType} <br>
-                        <strong>Path:</strong> ${data.origin} ➔ ${data.destination} <br>
+                        <strong>Path:</strong> ${data.origin} <i data-lucide="arrow-right" class="btn-icon" style="margin: 0 4px; width: 14px; height: 14px; vertical-align: middle;"></i> ${data.destination} <br>
                         <strong>Departure:</strong> ${departureTime} | 
                         <strong>Seats:</strong> ${schedule.available_seats || 0}
                     </div>
                     <div>
-                        <a href="/book/${schedule.schedule_id}" class="read-all-button" style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block; white-space: nowrap;">Book Ticket</a>
+                        <a href="/book/${schedule.schedule_id}" class="read-all-button" style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block; white-space: nowrap;"><i data-lucide="ticket" class="btn-icon" style="margin-right: 6px;"></i> Book Ticket</a>
                     </div>
                 </div>
             `;
@@ -331,7 +330,7 @@ function displayResults(data, isRestore=false) {
         textToSpeak = verbalSummary;
         
     } else {
-        resultsOutput.innerHTML = `<div class="schedule-card">ℹ️ No routes found.</div>`;
+        resultsOutput.innerHTML = `<div class="schedule-card"><i data-lucide="info" class="btn-icon" style="margin-right: 6px; color: var(--primary-color);"></i> No routes found.</div>`;
         if (data.origin && data.destination) {
             textToSpeak = `No routes found from ${data.origin} to ${data.destination}.`;
         } else {
@@ -351,6 +350,10 @@ function displayResults(data, isRestore=false) {
     // Save state for back navigation
     sessionStorage.setItem('lastSearchResults', JSON.stringify(data));
     sessionStorage.setItem('lastSearchTranscript', transcriptOutput.textContent);
+    
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 }
 
 // State restoration logic

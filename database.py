@@ -8,10 +8,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 # ==========================================
 # Modify these credentials to match your local installations
 MYSQL_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "",
-    "database": "transport_db",
+    "host": os.getenv("MYSQL_HOST", "localhost"),
+    "user": os.getenv("MYSQL_USER", "root"),
+    "password": os.getenv("MYSQL_PASSWORD", ""),
+    "database": os.getenv("MYSQL_DATABASE", "transport_db"),
+    "port": int(os.getenv("MYSQL_PORT", "3306")),
 }
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")

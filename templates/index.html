@@ -12,15 +12,17 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🎙️</text></svg>">
+    <!-- Lucide Icon Library -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
 
 <div class="transport-bg-logos">
-    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);">✈️</div>
-    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);">🚄</div>
-    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);">🚌</div>
-    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);">🚇</div>
-    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);">🚢</div>
+    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);"><i data-lucide="plane"></i></div>
+    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);"><i data-lucide="train"></i></div>
+    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);"><i data-lucide="bus"></i></div>
+    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);"><i data-lucide="tram"></i></div>
+    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
 
@@ -29,15 +31,15 @@
     <div class="dashboard-container">
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; flex-wrap: wrap;">
-                <h1>🎙️ Voice Transport Gateway</h1>
+                <h1><i data-lucide="mic" class="header-icon"></i> Voice Transport Gateway</h1>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     {% if session.get('user_id') %}
-                        <span style="color: var(--text-secondary); font-size: 0.95rem;">Hi, <strong style="color: white; text-shadow: 0 0 10px rgba(255,255,255,0.4);">{{ session.get('username') }}</strong></span>
-                        <a href="/my_bookings" class="secondary-btn">My Bookings</a>
-                        <a href="/logout" class="secondary-btn" style="color: #fbcfe8; border-color: var(--accent-color);">Sign Out</a>
+                        <span style="color: var(--text-secondary); font-size: 0.95rem;">Hi, <strong style="color: var(--text-primary); font-weight: 700;">{{ session.get('username') }}</strong></span>
+                        <a href="/my_bookings" class="secondary-btn"><i data-lucide="ticket" class="btn-icon" style="margin-right: 6px;"></i> My Bookings</a>
+                        <a href="/logout" class="secondary-btn" style="color: var(--accent-color); border-color: var(--accent-color);"><i data-lucide="log-out" class="btn-icon" style="margin-right: 6px;"></i> Sign Out</a>
                     {% else %}
-                        <a href="/login" class="secondary-btn">Sign In</a>
-                        <a href="/signup" class="secondary-btn" style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; border: none; border-top: 1px solid rgba(255,255,255,0.3); box-shadow: 0 5px 15px rgba(99,102,241,0.4);">Sign Up</a>
+                        <a href="/login" class="secondary-btn"><i data-lucide="log-in" class="btn-icon" style="margin-right: 6px;"></i> Sign In</a>
+                        <a href="/signup" class="secondary-btn" style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; border: none; border-top: 1px solid rgba(255,255,255,0.3); box-shadow: 0 5px 15px rgba(99,102,241,0.4);"><i data-lucide="user-plus" class="btn-icon" style="margin-right: 6px;"></i> Sign Up</a>
                     {% endif %}
                 </div>
             </div>
@@ -47,7 +49,7 @@
         <main class="interaction-panel">
             <div class="mic-button-wrapper">
                 <button id="mic-btn" class="mic-button">
-                    <span class="mic-icon">🎤</span>
+                    <i data-lucide="mic" class="mic-icon"></i>
                     <span id="mic-status">Click to Speak</span>
                 </button>
             </div>
@@ -58,7 +60,7 @@
 
             <form id="text-input-form" class="manual-input-form">
                 <input type="text" id="manual-query" placeholder="Type query (e.g., 'New Delhi to Mumbai')..." autocomplete="off" required>
-                <button type="submit" id="submit-btn">Search</button>
+                <button type="submit" id="submit-btn"><i data-lucide="search" class="btn-icon" style="margin-right: 6px;"></i> Search</button>
             </form>
 
             <div class="transcript-box">
@@ -69,16 +71,16 @@
 
         <section id="results-section" class="results-container hidden">
             <div class="results-header">
-                <h2>🗺️ Resolved Route Schedules</h2>
-                <button id="read-all-btn" class="read-all-button" title="Read all schedules verbally">🔊 Read All</button>
+                <h2><i data-lucide="route" class="title-icon"></i> Resolved Route Schedules</h2>
+                <button id="read-all-btn" class="read-all-button" title="Read all schedules verbally"><i data-lucide="volume-2" class="btn-icon" style="margin-right: 6px;"></i> Read All</button>
             </div>
             <div id="results-output"></div>
         </section>
     </div>
 
     <div class="scroll-buttons">
-        <button id="scroll-up-btn" class="scroll-btn" title="Scroll to Top">↑</button>
-        <button id="scroll-down-btn" class="scroll-btn" title="Scroll to Bottom">↓</button>
+        <button id="scroll-up-btn" class="scroll-btn" title="Scroll to Top"><i data-lucide="arrow-up"></i></button>
+        <button id="scroll-down-btn" class="scroll-btn" title="Scroll to Bottom"><i data-lucide="arrow-down"></i></button>
     </div>
 
     <audio id="tts-audio" style="display: none;"></audio>
@@ -90,6 +92,9 @@
         document.getElementById('scroll-down-btn').addEventListener('click', () => {
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         });
+        if (window.lucide) {
+            lucide.createIcons();
+        }
     </script>
 
 </body>

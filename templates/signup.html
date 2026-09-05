@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Voice Transport Gateway</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>📝</text></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🔑</text></svg>">
+    <!-- Lucide Icon Library -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .auth-form {
             display: flex;
@@ -26,8 +28,8 @@
             font-weight: 500;
         }
         .form-group input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.15);
             border-radius: 12px;
             padding: 0.8rem 1rem;
             color: var(--text-primary);
@@ -38,7 +40,7 @@
         .form-group input:focus {
             outline: none;
             border-color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.95);
             box-shadow: 0 0 0 4px var(--primary-glow);
         }
         .auth-btn {
@@ -91,33 +93,33 @@
             gap: 8px;
         }
         .flash-message.error {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #fca5a5;
+            background: rgba(220, 38, 38, 0.12);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #dc2626;
         }
         .flash-message.success {
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #a7f3d0;
+            background: rgba(5, 150, 105, 0.12);
+            border: 1px solid rgba(5, 150, 105, 0.3);
+            color: #059669;
         }
     </style>
 </head>
 <body>
 
 <div class="transport-bg-logos">
-    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);">✈️</div>
-    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);">🚄</div>
-    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);">🚌</div>
-    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);">🚇</div>
-    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);">🚢</div>
+    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);"><i data-lucide="plane"></i></div>
+    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);"><i data-lucide="train"></i></div>
+    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);"><i data-lucide="bus"></i></div>
+    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);"><i data-lucide="tram"></i></div>
+    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
 
 
     <div class="dashboard-container">
         <header>
-            <h1>📝 Create Account</h1>
-            <p>Sign up to book transport tickets instantly</p>
+            <h1><i data-lucide="user-plus" class="header-icon"></i> Sign Up</h1>
+            <p>Create an account to book travel tickets</p>
         </header>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -149,9 +151,14 @@
         <div class="auth-footer">
             Already have an account? <a href="{{ url_for('login') }}">Sign In</a>
             <br><br>
-            <a href="/" style="font-weight: normal; font-size: 0.85rem; color: var(--text-secondary);">&larr; Back to Dashboard</a>
+            <a href="/" style="font-weight: normal; font-size: 0.85rem; color: var(--text-secondary);"><i data-lucide="arrow-left" class="btn-icon" style="margin-right: 4px; width: 14px; height: 14px; vertical-align: middle;"></i> Back to Dashboard</a>
         </div>
     </div>
 
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
 </body>
 </html>

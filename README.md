@@ -1,180 +1,165 @@
-# Voice-Based Transport Gateway 🎙️✈️🚂🚌
+# Voice Transport System
 
-A state-of-the-art, fully offline, voice-controlled transport search system. It utilizes a hybrid database pipeline (Neo4j + MySQL) and a local machine learning stack for speech recognition, text-to-speech synthesis, and natural language understanding.
+A local Flask web application for finding and booking transport services with typed or spoken requests. It combines a Neo4j route graph with MySQL schedule and booking data, and can run speech recognition and speech synthesis locally.
 
----
+## What it does
 
-## 🌟 Key Features
+- Finds direct routes and connections of up to five legs.
+- Understands requests such as `find trains from Delhi to Mumbai`, including common station-name misspellings.
+- Supports browser-recorded voice search through Whisper and spoken search summaries through Kokoro TTS.
+- Provides user sign-up, sign-in, booking, cancellation, and a per-user booking history.
+- Lets an administrator manage stations, routes, and schedules.
+- Caches the frontend shell with a service worker. Search, authentication, booking, and admin requests always remain network requests.
 
-1. **Offline Speech Recognition (ASR)**: Powered by OpenAI's **Whisper (Tiny)** model, processing voice inputs locally with an `initial_prompt` keyword guide for high-fidelity transcription.
-2. **Offline Speech Synthesis (TTS)**: Powered by **Kokoro-82M** (via `kokoro-onnx`), delivering natural, studio-quality verbal outputs offline.
-3. **Conversational NLP Routing**: Uses a hybrid extraction pipeline combining **spaCy (NER)**, exact substring filters, and prepositional parsing to extract travel boundaries (Origin and Destination cities).
-4. **Fuzzy Spelling Normalization**: Leverages **RapidFuzz** (Levenshtein distance scoring) to handle user pronunciation/spelling typos (e.g. *"mumbay"* ➡️ *"Mumbai"*, *"delhy"* ➡️ *"New Delhi"*).
-5. **Polyglot Database Engine**:
-   * **Neo4j Graph Database**: Handles station topology, connectivity paths, and station-to-station traversals.
-   * **MySQL Relational Database**: Manages scheduled schedules, transport types, prices, timings, and real-time seat capacities.
-6. **User Authentication & Ticket Booking**: Complete user signup/login flows integrated with real-time capacity-checking algorithms. Users can browse schedules, manage their bookings, and cancel tickets dynamically. Booking forms automatically populate authenticated user details.
-7. **Multi-Leg Transit Routing**: Automatically resolves connecting paths when direct paths are unavailable, creating an aggregated single-transaction multi-leg booking cart experience.
-8. **Administrative Command Center**: A protected web-interface for transport operators to run CRUD actions on stations, routes, and schedules in real-time.
-9. **Modern Interface**: Designed with premium dark-mode styles, responsive CSS grid layouts, micro-animations, and offline fallback caching via a Service Worker.
-10. **Smart Browser Caching**: The frontend leverages Web Performance API and `sessionStorage` to preserve complex search query results during back/forward navigation without unnecessary database re-queries, while ensuring a clean state upon manual page reloads.
-
----
-
-## 🏗️ System Architecture & Workflow
-
-Below is the execution flow of a single voice query:
+## Architecture
 
 ```mermaid
-graph TD
-    A[User Voice Input / Web Panel] -->|Recorded WebM Audio| B[Flask Server: /search-audio]
-    B -->|Convert PCM 16kHz Mono| C[Whisper Tiny Engine]
-    C -->|Transcribed Text Query| D[spaCy NLP Boundary Extractor]
-    D -->|Extracted Raw Cities| E[RapidFuzz Lexical Correction]
-    E -->|Normalized Station Names| F[Polyglot Database Query]
-    F -->|Query Graph Nodes| G[Neo4j: Graph Traversals]
-    G -->|Returned Route IDs| H[MySQL: Schedule Lookup]
-    H -->|Schedules, TIMEs, Prices| I[Flask JSON Orchestrator]
-    I -->|JSON Payload + Transcription| J[Browser Web UI Render]
-    I -->|Text Output Summary| K[Kokoro-82M TTS Engine]
-    K -->|Synthesized WAV Audio| L[Web Audio Playback]
+flowchart LR
+    U[Browser] -->|text or WebM audio| F[Flask application]
+    F -->|audio transcription| W[Whisper]
+    F -->|extract and normalize cities| N[spaCy + RapidFuzz]
+    N --> G[Neo4j route graph]
+    G -->|route IDs| M[MySQL schedules and bookings]
+    M --> F
+    F -->|optional audio summary| K[Kokoro TTS]
+    F --> U
 ```
 
----
+Neo4j holds stations and the `CONNECTS_TO` route relationships. MySQL holds transport types, schedules, users, and bookings. See [docs/architecture.md](docs/architecture.md) for the data model and request flow.
 
-## 🛠️ Technology Stack
+## Prerequisites
 
-* **Backend Orchestrator**: Python 3, Flask
-* **Speech Stack**: `openai-whisper` (ASR), `kokoro-onnx` (TTS)
-* **NLP & Text Normalization**: `spacy` (`en_core_web_sm`), `rapidfuzz`
-* **Databases**:
-  * Neo4j (Graph Network Topology)
-  * MySQL (Real-time Schedules & Capacities)
-* **Security**: Parameterized SQL queries for prevention of SQL injection; encrypted password hashing for User Accounts.
-* **Web Frontend**: Vanilla HTML5, CSS3 Custom Properties, Vanilla JavaScript, Service Worker (PWA-enabled)
-* **Testing Suite**: Python `unittest`, `unittest.mock`
+- Python 3.10 or newer
+- MySQL Server, with a `transport_db` database
+- Neo4j, available over Bolt (default: `bolt://localhost:7687`)
+- `ffmpeg` installed and available on `PATH` for browser audio decoding
+- Optional but needed for voice features: local Whisper and Kokoro model files
 
----
+## Quick start
 
-## 💾 Database Schemas
+1. Create the MySQL database and add the base transport tables:
 
-### 1. Neo4j Graph Topology
-Stations are represented as nodes (`Station`) and connections between them are directed relationships (`CONNECTS_TO`):
-```cypher
-(start:Station {name: "New Delhi"})-[:CONNECTS_TO {route_id: 1}]->(end:Station {name: "Bangalore"})
-```
+   ```sql
+   CREATE DATABASE transport_db;
+   USE transport_db;
 
-### 2. MySQL Relational Schema
-Schedules and transport assets are stored in relational tables:
-```sql
-CREATE TABLE Transport_Details (
-    transport_id INT PRIMARY KEY AUTO_INCREMENT,
-    type VARCHAR(50) NOT NULL  -- 'Train', 'Flight', 'Bus'
-);
+   CREATE TABLE Transport_Details (
+       transport_id INT PRIMARY KEY,
+       type VARCHAR(50) NOT NULL
+   );
 
-CREATE TABLE Schedules (
-    schedule_id INT PRIMARY KEY AUTO_INCREMENT,
-    route_id INT NOT NULL,
-    transport_id INT,
-    departure_time TIME,
-    arrival_time TIME,
-    available_seats INT,
-    FOREIGN KEY (transport_id) REFERENCES Transport_Details(transport_id)
-);
+   INSERT INTO Transport_Details (transport_id, type)
+   VALUES (1, 'Flight'), (2, 'Train'), (3, 'Bus');
 
-CREATE TABLE Bookings (
-    booking_id INT PRIMARY KEY AUTO_INCREMENT,
-    schedule_id INT NOT NULL,
-    passenger_name VARCHAR(100),
-    passenger_email VARCHAR(100),
-    seats_booked INT NOT NULL,
-    travel_date DATE,
-    status VARCHAR(20) DEFAULT 'ACTIVE',
-    user_id INT,
-    FOREIGN KEY (schedule_id) REFERENCES Schedules(schedule_id),
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
-);
-```
-
----
-
-## 🚀 Setup & Installation
-
-### Prerequisites
-* Python 3.10+
-* MySQL Server (running locally on port 3306)
-* Neo4j DBMS (running locally on port 7687)
-* System audio package dependencies (e.g. `ffmpeg` and `portaudio`)
-
-### 1. Clone & Configure Python Environment
-```bash
-git clone https://github.com/aldhaf2007/voicebased-transport-system.git
-cd voicebased-transport-system
-
-# Create and activate environment
-python3 -m venv .venv
-source .venv/bin/env
-# (Ensure pip is available and updated)
-```
-
-### 2. Install Packages
-```bash
-pip install -r requirements.txt
-# If requirements.txt is not yet generated, install core packages:
-pip install Flask spacy rapidfuzz pydub openai-whisper numpy kokoro-onnx soundfile mysql-connector-python neo4j
-```
-
-### 3. Install spaCy NLP Model
-```bash
-python3 -m spacy download en_core_web_sm
-```
-
-### 4. Configure Database Credentials
-Modify `database.py` configurations or export environment variables:
-```python
-MYSQL_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "YOUR_MYSQL_PASSWORD",
-    "database": "transport_db",
-}
-
-NEO4J_URI = "bolt://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "YOUR_NEO4J_PASSWORD"
-```
-
----
-
-## 🎙️ Model Downloads (Offline Assets)
-
-To make speech recognition and synthesis run completely offline, the following models must be placed in the project root:
-
-1. **Whisper Model**:
-   * Downloaded automatically to `~/.cache/whisper` on the first run of the script.
-
-2. **Kokoro TTS Models**:
-   * Download the ONNX model: [kokoro-v1.0.onnx](https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx)
-   * Download the voice binaries: [voices-v1.0.bin](https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin)
-   * Place both files in the root folder of the project.
-
----
-
-## 💻 Running the Application
-
-1. **Start your local MySQL and Neo4j servers**.
-2. **Execute the backend application**:
-   ```bash
-   python3 app.py
+   CREATE TABLE Schedules (
+       schedule_id INT PRIMARY KEY AUTO_INCREMENT,
+       route_id INT NOT NULL,
+       transport_id INT NOT NULL,
+       departure_time TIME NOT NULL,
+       arrival_time TIME NOT NULL,
+       available_seats INT NOT NULL,
+       FOREIGN KEY (transport_id) REFERENCES Transport_Details(transport_id)
+   );
    ```
-3. Open your browser and navigate to `http://localhost:5000`.
-4. Click the **Microphone** icon to record a search request like: *"Show me flights from Delhi to Mumbai"* or *"Find trains from Bangalore to Mumbai"*.
 
----
+   On application startup, `Bookings` and `Users` are created automatically if the MySQL connection succeeds.
 
-## 🧪 Running Tests
+2. Create and activate a virtual environment:
 
-To verify speech routing logic, NLP extraction nodes, database wrappers, and TTS endpoints, execute the mock-patched test suite:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   python -m pip install --upgrade pip
+   ```
+
+3. Install the Python packages:
+
+   ```bash
+   pip install Flask spacy rapidfuzz pydub openai-whisper numpy kokoro-onnx soundfile onnxruntime mysql-connector-python neo4j
+   python -m spacy download en_core_web_sm
+   ```
+
+4. Configure services. Neo4j credentials can be set with environment variables; MySQL connection values currently live in `database.py`.
+
+   ```bash
+   export NEO4J_URI='bolt://localhost:7687'
+   export NEO4J_USER='neo4j'
+   export NEO4J_PASSWORD='replace-with-your-password'
+   export FLASK_SECRET_KEY='replace-with-a-random-secret'
+   export ADMIN_USERNAME='admin@example.local'
+   export ADMIN_PASSWORD='replace-with-a-strong-password'
+   ```
+
+5. Create stations and routes in Neo4j. Routes must have a `route_id` which matches the `Schedules.route_id` value in MySQL. The administrator dashboard can create these after at least two stations exist.
+
+   ```cypher
+   CREATE (:Station {name: 'New Delhi'});
+   CREATE (:Station {name: 'Mumbai'});
+   MATCH (a:Station {name: 'New Delhi'}), (b:Station {name: 'Mumbai'})
+   CREATE (a)-[:CONNECTS_TO {route_id: 1}]->(b),
+          (b)-[:CONNECTS_TO {route_id: 2}]->(a);
+   ```
+
+   Then insert schedules whose route IDs are `1` or `2`, or add them through the admin dashboard.
+
+6. Start the application and open <http://localhost:5000>:
+
+   ```bash
+   python app.py
+   ```
+
+## Voice assets
+
+Text search works without the speech models. Voice search and spoken summaries require the following assets:
+
+- Whisper `tiny` downloads on first successful load to the standard Whisper cache.
+- `kokoro-v1.0.onnx` and `voices-v1.0.bin` must be placed in the project root. The application loads both filenames directly.
+
+If either model cannot load, the app starts but its corresponding voice endpoint returns `503 Service Unavailable`.
+
+## Using the application
+
+1. On the home page, enter a route request or use the microphone button.
+2. Choose a direct option or a set of transit legs.
+3. Sign up or sign in before confirming a booking.
+4. Visit **My Bookings** to view or cancel your bookings. Successful bookings also create a local text receipt in a project-root folder named after the username.
+5. Sign in at `/admin-login` to manage the network and timetable. Set `ADMIN_USERNAME` and `ADMIN_PASSWORD`; the built-in defaults are suitable only for local development.
+
+## API reference
+
+The browser UI consumes the same Flask endpoints. Common programmatic endpoints are documented in [docs/api.md](docs/api.md).
+
+## Tests
+
+Run the unit test suite with:
+
 ```bash
-python3 test_app.py
+python -m unittest test_app.py
 ```
+
+Some tests exercise database-backed behaviour and therefore require the configured services and seed data. `test_session.py` is a Selenium smoke-test script; start the app before running it and ensure ChromeDriver is available.
+
+## Project layout
+
+```text
+app.py                    Flask routes, NLP, speech integration, and booking flow
+database.py               Neo4j/MySQL access and transactional booking logic
+templates/                Server-rendered HTML pages
+static/js/main.js         Browser search, recording, rendering, and cache behaviour
+static/css/style.css      Interface styling
+static/service-worker.js  PWA asset cache
+docs/                     Architecture and API documentation
+test_app.py               Unit and route tests
+```
+
+## Operational notes
+
+- Treat the Flask development server and the fallback secret/admin credentials as development-only settings.
+- Backup MySQL before deleting stations or routes: those actions remove related schedule records.
+- Neo4j route IDs and MySQL schedule route IDs are an application-level contract; keep them synchronized.
+- Bookings use MySQL transactions and row locks to avoid overselling seats. Multi-leg bookings succeed only if every leg has capacity.
+
+## Further reading
+
+- [Architecture and data model](docs/architecture.md)
+- [HTTP API reference](docs/api.md)

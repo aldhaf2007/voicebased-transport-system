@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#6366f1">
-    <meta name="description" content="Transit ticket booking page for the Voice Transport Gateway">
-    <title>Book Transit Journey - Voice Transport Gateway</title>
+    <meta name="description" content="Ticket booking page for the Voice Transport Gateway">
+    <title>Book Ticket - Voice Transport Gateway</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🗺️</text></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🎫</text></svg>">
+    <!-- Lucide Icon Library -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .booking-card {
             background: var(--card-bg);
@@ -57,13 +59,12 @@
         .form-group label {
             font-size: 0.9rem;
             font-weight: 500;
-            color: #a5b4fc;
+            color: var(--primary-color);
         }
 
         .form-input {
-            color-scheme: dark;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.15);
             border-radius: 8px;
             color: var(--text-primary);
             padding: 0.75rem 1rem;
@@ -76,10 +77,10 @@
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px var(--primary-glow);
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.95);
         }
 
-        /* Fix calendar icon visibility on dark backgrounds */
+        /* Fix calendar icon visibility on light backgrounds */
         .form-input::-webkit-calendar-picker-indicator {
             cursor: pointer;
             opacity: 0.7;
@@ -125,15 +126,15 @@
         }
 
         .alert-box.success {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #34d399;
+            background: rgba(5, 150, 105, 0.12);
+            border: 1px solid rgba(5, 150, 105, 0.3);
+            color: #059669;
         }
 
         .alert-box.error {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #f87171;
+            background: rgba(220, 38, 38, 0.12);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #dc2626;
         }
 
         .header-actions {
@@ -144,7 +145,7 @@
         }
 
         .back-link {
-            color: #a5b4fc;
+            color: var(--primary-color);
             text-decoration: none;
             font-size: 0.9rem;
             border: 1px solid var(--card-border);
@@ -156,14 +157,14 @@
 
         .back-link:hover {
             background: rgba(99, 102, 241, 0.1);
-            border-color: var(--primary-color);
-            color: white;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
         }
 
         .leg-indicator {
-            background: rgba(99, 102, 241, 0.15);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: #a5b4fc;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: var(--primary-color);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
             font-size: 0.8rem;
@@ -176,11 +177,11 @@
 <body>
 
 <div class="transport-bg-logos">
-    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);">✈️</div>
-    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);">🚄</div>
-    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);">🚌</div>
-    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);">🚇</div>
-    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);">🚢</div>
+    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);"><i data-lucide="plane"></i></div>
+    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);"><i data-lucide="train"></i></div>
+    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);"><i data-lucide="bus"></i></div>
+    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);"><i data-lucide="tram"></i></div>
+    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
 
@@ -189,20 +190,20 @@
     <div class="dashboard-container" style="max-width: 750px;">
         <header>
             <div class="header-actions">
-                <a href="/" class="back-link">← Back to Search</a>
-                <h2 style="font-family: var(--font-heading); background: linear-gradient(to right, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;">Book Transit Journey</h2>
+                <a href="/" class="back-link"><i data-lucide="arrow-left" class="btn-icon" style="margin-right: 6px;"></i> Return to Search</a>
+                <h2 style="font-family: var(--font-heading); background: linear-gradient(to right, var(--primary-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;"><i data-lucide="ticket" class="title-icon" style="color: var(--primary-color); vertical-align: middle;"></i> Ticket Checkout</h2>
             </div>
         </header>
 
         <main>
             <div class="alert-box" id="booking-alert"></div>
 
-            <h3 style="color: #a5b4fc; font-family: var(--font-heading); margin-bottom: 1rem;">🗺️ Journey Legs</h3>
+            <h3 style="color: var(--primary-color); font-family: var(--font-heading); margin-bottom: 1rem;"><i data-lucide="milestone" class="title-icon"></i> Selected Journey</h3>
             
             {% for leg in schedules %}
             <div class="booking-card">
                 <div class="leg-indicator">LEG {{ loop.index }}</div>
-                <h4 style="color: var(--text-primary); font-family: var(--font-heading);">{{ leg.source }} ➔ {{ leg.destination }}</h4>
+                <h4 style="color: var(--text-primary); font-family: var(--font-heading);">{{ leg.source }} <i data-lucide="arrow-right" class="btn-icon" style="margin: 0 4px; width: 14px; height: 14px; vertical-align: middle;"></i> {{ leg.destination }}</h4>
                 <div class="booking-details-grid">
                     <div class="detail-item">
                         <span class="detail-label">Service</span>
@@ -341,6 +342,10 @@
             } 
         });
     </script>
-
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
 </body>
 </html>

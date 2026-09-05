@@ -7,24 +7,26 @@
     <title>My Bookings - Voice Transport Gateway</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🎙️</text></svg>">
+    <!-- Lucide Icon Library -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .dashboard-container {
             max-width: 1000px;
             margin: 2rem auto;
-            background: rgba(15, 23, 42, 0.55);
+            background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(25px);
             -webkit-backdrop-filter: blur(25px);
             border: 1px solid var(--card-border);
             border-radius: 24px;
             padding: 2.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 20px 50px -10px rgba(99, 102, 241, 0.12);
         }
 
         .table-wrapper {
-            background: rgba(30, 41, 59, 0.6);
+            background: rgba(255, 255, 255, 0.5);
             border-radius: 16px;
             overflow: hidden;
-            border: 1px solid var(--card-border);
+            border: 1px solid rgba(99, 102, 241, 0.1);
         }
 
         table {
@@ -33,19 +35,19 @@
         }
 
         th {
-            background: rgba(15, 23, 42, 0.8);
-            color: #a5b4fc;
+            background: #f1f5f9;
+            color: var(--primary-color);
             padding: 1rem;
             text-align: left;
             font-size: 0.9rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            border-bottom: 1px solid var(--card-border);
+            border-bottom: 2px solid rgba(99, 102, 241, 0.15);
         }
 
         td {
             padding: 1rem;
-            border-bottom: 1px solid var(--card-border);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
             color: var(--text-primary);
             font-size: 0.95rem;
             vertical-align: middle;
@@ -56,18 +58,18 @@
         }
 
         tr:hover {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(99, 102, 241, 0.03);
         }
     </style>
 </head>
 <body>
 
 <div class="transport-bg-logos">
-    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);">✈️</div>
-    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);">🚄</div>
-    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);">🚌</div>
-    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);">🚇</div>
-    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);">🚢</div>
+    <div class="bg-logo" style="top: 10%; left: 5%; transform: rotate(-15deg);"><i data-lucide="plane"></i></div>
+    <div class="bg-logo" style="top: 65%; left: 8%; transform: rotate(10deg);"><i data-lucide="train"></i></div>
+    <div class="bg-logo" style="top: 35%; left: 80%; transform: rotate(-5deg);"><i data-lucide="bus"></i></div>
+    <div class="bg-logo" style="top: 85%; left: 75%; transform: rotate(20deg);"><i data-lucide="tram"></i></div>
+    <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
 
@@ -75,8 +77,8 @@
 
     <div class="dashboard-container">
         <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 1.5rem; margin-bottom: 2rem;">
-            <h1>🎫 My Bookings</h1>
-            <a href="/" class="secondary-btn" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">← Back to Home</a>
+            <h1><i data-lucide="ticket" class="header-icon"></i> My Bookings</h1>
+            <a href="/" class="secondary-btn"><i data-lucide="arrow-left" class="btn-icon" style="margin-right: 6px;"></i> Back to Home</a>
         </header>
 
         <div class="table-wrapper">
@@ -97,15 +99,15 @@
                         <tr>
                             <td><strong>#{{ b.booking_id }}</strong></td>
                             <td>{{ b.passenger_name }}<br><small style="color: var(--text-secondary);">{{ b.passenger_email }}</small></td>
-                            <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: #fbcfe8;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
+                            <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: var(--accent-color);">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
                             <td>{{ b.travel_date }}</td>
                             <td>{{ b.seats_booked }}</td>
                             <td>{{ b.booking_time }}</td>
                             <td>
                                 {% if b.status == 'CANCELLED' %}
-                                    <span style="color: #fca5a5; font-weight: bold;">Cancelled</span>
+                                    <span style="color: var(--error-color); font-weight: bold;"><i data-lucide="x-circle" class="btn-icon" style="margin-right: 4px; width: 14px; height: 14px; vertical-align: middle;"></i> Cancelled</span>
                                 {% else %}
-                                    <button onclick="cancelBooking({{ b.booking_id }})" class="secondary-btn" style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.5rem 1rem; font-size: 0.8rem;">Cancel</button>
+                                    <button onclick="cancelBooking({{ b.booking_id }})" class="secondary-btn" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--error-color); padding: 0.5rem 1rem; font-size: 0.8rem;"><i data-lucide="trash-2" class="btn-icon" style="margin-right: 4px; width: 12px; height: 12px; vertical-align: middle;"></i> Cancel</button>
                                 {% endif %}
                             </td>
                         </tr>
@@ -143,6 +145,10 @@
             } 
         }
     </script>
-
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
 </body>
 </html>
