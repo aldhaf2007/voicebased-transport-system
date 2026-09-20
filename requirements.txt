@@ -12,3 +12,5 @@ numpy
 kokoro-onnx>=0.4.0
 soundfile>=0.12.1
 onnxruntime>=1.16.0
+imageio-ffmpeg>=0.4.9
+

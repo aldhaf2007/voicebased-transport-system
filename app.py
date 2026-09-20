@@ -5,6 +5,17 @@ from rapidfuzz import process, fuzz
 import io
 import json
 import base64
+
+# Configure PATH for ffmpeg via imageio_ffmpeg if needed
+try:
+    import imageio_ffmpeg
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    ffmpeg_dir = os.path.dirname(ffmpeg_exe)
+    if ffmpeg_dir not in os.environ.get("PATH", ""):
+        os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
+except Exception as e:
+    print(f"Notice: imageio_ffmpeg setup skipped: {e}")
+
 from pydub import AudioSegment
 import whisper
 import numpy as np
@@ -37,6 +48,26 @@ from database import (
     cancel_user_booking
 )
 
+# Function to ensure Kokoro TTS models are downloaded if missing on deployment environment
+def ensure_kokoro_models():
+    import urllib.request
+    models = {
+        "kokoro-v1.0.onnx": "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx",
+        "voices-v1.0.bin": "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
+    }
+    for filename, url in models.items():
+        if not os.path.exists(filename):
+            print(f"Downloading missing TTS asset {filename}...")
+            try:
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req) as resp, open(filename, 'wb') as out_file:
+                    out_file.write(resp.read())
+                print(f"Downloaded {filename} successfully.")
+            except Exception as download_err:
+                print(f"Failed to download {filename}: {download_err}")
+
+ensure_kokoro_models()
+
 # Initialize the Whisper model globally for offline speech recognition
 try:
     print("Loading Whisper tiny model...")
@@ -51,7 +82,6 @@ try:
     print("Loading Kokoro TTS model (kokoro-v1.0.onnx) with optimized SessionOptions...")
     sess_options = ort.SessionOptions()
     # Optimize threads to avoid scheduler overhead and minimize latency
-    import os
     sess_options.intra_op_num_threads = os.cpu_count() or 4
     sess_options.inter_op_num_threads = 1
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
@@ -69,6 +99,7 @@ except Exception as e:
     except Exception as ex:
         print(f"Warning: Failed to load Kokoro model: {ex}. Voice synthesis will be unavailable.")
         kokoro_tts = None
+
 
 # Load the pre-trained English context model into memory globally
 nlp = spacy.load("en_core_web_sm")

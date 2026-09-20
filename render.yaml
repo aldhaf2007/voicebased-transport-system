@@ -1,11 +1,31 @@
 services:
   - type: web
     name: voice-transport-system
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: FLASK_SECRET_KEY
         generateValue: true
+      - key: MYSQL_HOST
+        sync: false
+      - key: MYSQL_USER
+        sync: false
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: MYSQL_DATABASE
+        sync: false
+      - key: MYSQL_PORT
+        value: "3306"
+      - key: NEO4J_URI
+        sync: false
+      - key: NEO4J_USER
+        sync: false
+      - key: NEO4J_PASSWORD
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

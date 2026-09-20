@@ -1,19 +1,32 @@
 import mysql.connector
 from neo4j import GraphDatabase
 import os
+from urllib.parse import urlparse, unquote
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # ==========================================
 # 1. DATABASE CONFIGURATION CONFIG
 # ==========================================
-# Modify these credentials to match your local installations
-MYSQL_CONFIG = {
-    "host": os.getenv("MYSQL_HOST", "localhost"),
-    "user": os.getenv("MYSQL_USER", "root"),
-    "password": os.getenv("MYSQL_PASSWORD", ""),
-    "database": os.getenv("MYSQL_DATABASE", "transport_db"),
-    "port": int(os.getenv("MYSQL_PORT", "3306")),
-}
+def get_mysql_config():
+    mysql_url = os.getenv("MYSQL_URL") or os.getenv("DATABASE_URL")
+    if mysql_url and ("mysql://" in mysql_url or "mysqls://" in mysql_url):
+        url = urlparse(mysql_url)
+        return {
+            "host": url.hostname or "localhost",
+            "user": url.username or "root",
+            "password": unquote(url.password) if url.password else "",
+            "database": url.path.lstrip("/") or "transport_db",
+            "port": url.port or 3306,
+        }
+    return {
+        "host": os.getenv("MYSQL_HOST", "localhost"),
+        "user": os.getenv("MYSQL_USER", "root"),
+        "password": os.getenv("MYSQL_PASSWORD", ""),
+        "database": os.getenv("MYSQL_DATABASE", "transport_db"),
+        "port": int(os.getenv("MYSQL_PORT", "3306")),
+    }
+
+MYSQL_CONFIG = get_mysql_config()
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
@@ -26,11 +39,13 @@ NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "0362007Ag")
 def get_mysql_connection():
     """Establishes and returns a connection to the MySQL database."""
     try:
-        connection = mysql.connector.connect(**MYSQL_CONFIG)
+        config = get_mysql_config()
+        connection = mysql.connector.connect(**config)
         return connection
     except mysql.connector.Error as err:
         print(f"❌ MySQL Connection Error: {err}")
         return None
+
 
 
 def get_neo4j_driver():
