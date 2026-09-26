@@ -2,109 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
     <title>Administration Panel - Voice Transport Gateway</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🛡️</text></svg>">
     <!-- Lucide Icon Library -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Specific enhancements for wider Admin Command Center dashboard layout */
-        body {
-            align-items: flex-start;
-            padding: 2rem;
-        }
-
-        .admin-container {
-            max-width: 1200px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--card-border);
-            border-radius: 24px;
-            padding: 2.5rem;
-            box-shadow: 0 20px 50px -10px rgba(99, 102, 241, 0.12);
-            margin: 0 auto;
-        }
-
-        header.admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--card-border);
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        header.admin-header h1 {
-            font-size: 1.8rem;
-            background: linear-gradient(to right, var(--primary-color), var(--accent-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .back-btn {
-            background: transparent;
-            border: 1px solid var(--primary-color);
-            border-radius: 8px;
-            color: var(--primary-color);
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
-
-        .back-btn:hover {
-            background: rgba(99, 102, 241, 0.1);
-            color: var(--accent-color);
-            border-color: var(--accent-color);
-        }
-
-        /* Alert notifications styling */
-        .alert-banner {
-            padding: 1rem;
-            border-radius: 12px;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-            display: none;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .alert-success {
-            background: rgba(5, 150, 105, 0.12);
-            border: 1px solid rgba(5, 150, 105, 0.3);
-            color: #059669;
-        }
-
-        .alert-error {
-            background: rgba(220, 38, 38, 0.12);
-            border: 1px solid rgba(220, 38, 38, 0.3);
-            color: #dc2626;
-        }
-
-        /* Responsive Grid Panels */
+        /* Admin Command Center layout enhancements */
         .admin-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 2rem;
+            width: 100%;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 960px) {
             .admin-grid {
                 grid-template-columns: 1fr;
             }
         }
 
         .admin-card {
-            background: var(--card-bg);
+            background: rgba(255, 255, 255, 0.85);
             border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 1.75rem;
             display: flex;
             flex-direction: column;
             gap: 1.25rem;
-            transition: border-color 0.3s ease;
+            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.08);
+            transition: border-color 0.25s ease;
         }
 
         .admin-card:hover {
@@ -115,209 +45,155 @@
             font-size: 1.25rem;
             color: var(--primary-color);
             font-family: var(--font-heading);
-            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+            padding-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
         }
 
-        /* Flex lists layout */
+        .schedules-section {
+            grid-column: 1 / -1;
+        }
+
+        /* Flex list for stations and routes */
         .data-list {
-            max-height: 250px;
+            max-height: 260px;
             overflow-y: auto;
-            border: 1px solid rgba(99, 102, 241, 0.1);
-            border-radius: 8px;
-            padding: 0.5rem;
-            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(99, 102, 241, 0.12);
+            border-radius: 12px;
+            padding: 0.6rem;
+            background: rgba(255, 255, 255, 0.6);
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
-        }
-
-        .data-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .data-list::-webkit-scrollbar-thumb {
-            background: rgba(99, 102, 241, 0.2);
-            border-radius: 3px;
         }
 
         .data-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(99, 102, 241, 0.08);
-            border-radius: 8px;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            border-radius: 10px;
+            padding: 0.6rem 0.85rem;
+            font-size: 0.92rem;
             transition: all 0.2s ease;
         }
 
         .data-item:hover {
-            background: rgba(255, 255, 255, 0.95);
-            border-color: rgba(99, 102, 241, 0.2);
+            background: #ffffff;
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
         }
 
         .btn-group {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
 
         .btn-small {
-            padding: 0.25rem 0.5rem;
+            padding: 0.3rem 0.65rem;
             font-size: 0.8rem;
-            border-radius: 4px;
+            font-weight: 600;
+            border-radius: 6px;
             cursor: pointer;
             border: none;
-            transition: opacity 0.2s;
-            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
 
-        .btn-small:hover {
-            opacity: 0.9;
-        }
-
-        .btn-edit {
+        .btn-small.btn-edit {
             background: var(--primary-color);
             color: white;
         }
 
-        .btn-delete {
+        .btn-small.btn-edit:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-small.btn-delete {
+            background: rgba(220, 38, 38, 0.1);
+            color: var(--error-color);
+            border: 1px solid rgba(220, 38, 38, 0.25);
+        }
+
+        .btn-small.btn-delete:hover {
             background: var(--error-color);
             color: white;
         }
 
-        /* Forms Layout */
+        /* Form elements */
         .admin-form {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 0.85rem;
         }
 
         .admin-form .form-group {
             display: flex;
             flex-direction: column;
-            gap: 0.4rem;
+            gap: 0.35rem;
         }
 
         .admin-form label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            font-weight: 500;
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            font-weight: 600;
         }
 
-        .admin-form input, .admin-form select {
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(99, 102, 241, 0.15);
-            border-radius: 8px;
-            padding: 0.5rem 0.75rem;
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            font-size: 0.9rem;
+        /* Tab buttons */
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s ease;
             outline: none;
-            transition: all 0.3s ease;
+            font-family: var(--font-heading);
         }
 
-        .admin-form input:focus, .admin-form select:focus {
-            border-color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 0 0 3px var(--primary-glow);
-        }
-
-        .admin-form select option {
-            background: white;
-            color: var(--text-primary);
-        }
-
-        .admin-form button[type="submit"] {
+        .tab-btn.active {
             background: var(--primary-color);
             color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 0.6rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 0.5rem;
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
         }
 
-        .admin-form button[type="submit"]:hover {
-            box-shadow: 0 4px 12px var(--primary-glow);
+        .tab-btn.inactive {
+            background: rgba(255, 255, 255, 0.85);
+            color: var(--text-secondary);
+            border: 1px solid rgba(99, 102, 241, 0.2);
         }
 
-        .admin-form button[type="submit"]:active {
-            transform: translateY(1px);
-        }
-
-        /* Wide Schedules Table Section */
-        .schedules-section {
-            grid-column: 1 / -1;
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-            border: 1px solid rgba(99, 102, 241, 0.1);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.5);
-            max-height: 350px;
-            overflow-y: auto;
-        }
-
-        .table-wrapper::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        .table-wrapper::-webkit-scrollbar-thumb {
-            background: rgba(99, 102, 241, 0.2);
-            border-radius: 3px;
-        }
-
-        table.schedules-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 0.9rem;
-        }
-
-        table.schedules-table th, table.schedules-table td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-            color: var(--text-primary);
-        }
-
-        table.schedules-table th {
-            background: #f1f5f9;
+        .tab-btn.inactive:hover {
+            background: #ffffff;
             color: var(--primary-color);
-            font-family: var(--font-heading);
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            border-bottom: 2px solid rgba(99, 102, 241, 0.15);
-        }
-
-        table.schedules-table tr:hover {
-            background: rgba(99, 102, 241, 0.03);
+            border-color: var(--primary-color);
         }
 
         /* Modal Overlay */
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(5px);
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(6px);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.25s ease;
+            padding: 1rem;
         }
 
         .modal-overlay.active {
@@ -326,15 +202,15 @@
         }
 
         .modal-content {
-            background: white;
+            background: #ffffff;
             border: 1px solid rgba(99, 102, 241, 0.2);
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 2rem;
-            width: 90%;
-            max-width: 450px;
-            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.15);
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
+            transform: scale(0.94);
+            transition: transform 0.25s ease;
         }
 
         .modal-overlay.active .modal-content {
@@ -346,21 +222,25 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.25rem;
-            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+            padding-bottom: 0.6rem;
         }
 
         .modal-header h3 {
             color: var(--primary-color);
             font-family: var(--font-heading);
+            font-size: 1.2rem;
+            margin: 0;
         }
 
         .close-modal {
             background: transparent;
             border: none;
             color: var(--text-secondary);
-            font-size: 1.25rem;
+            font-size: 1.5rem;
             cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
         }
 
         .close-modal:hover {
@@ -378,615 +258,686 @@
     <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
-
-
-
-    <div class="admin-container">
-        <header class="admin-header">
+<div class="dashboard-container wide-container">
+    <header>
+        <div class="top-nav">
             <div>
-                <h1><i data-lucide="shield-check" class="header-icon"></i> Administrative Command Center</h1>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">
-                    Manage station networks, directed route IDs, and service time schedules.
+                <h1 style="font-size: 2.1rem;"><i data-lucide="shield-check" class="header-icon"></i> Administrative Command Center</h1>
+                <p class="subtitle" style="margin: 0.25rem 0 0 0;">
+                    Manage station topology (Neo4j), directed route connections, and transport schedules (MySQL).
                 </p>
             </div>
-            <div style="display: flex; gap: 1rem; align-items: center;">
-                <a href="/" class="back-btn"><i data-lucide="arrow-left" class="btn-icon" style="margin-right: 6px;"></i> Back to Search</a>
-                <a href="{{ url_for('admin_logout') }}" class="back-btn" style="border-color: var(--error-color); color: var(--error-color);"><i data-lucide="log-out" class="btn-icon" style="margin-right: 6px;"></i> Logout</a>
-            </div>
-        </header>
-
-        <!-- Alert Notification Panel -->
-        <div id="alert-panel" class="alert-banner"></div>
-
-        <!-- Tab Navigation -->
-        <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
-            <button onclick="switchTab('db')" id="tab-btn-db" style="background: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Database Management</button>
-            <button onclick="switchTab('users')" id="tab-btn-users" style="background: rgba(255,255,255,0.1); color: var(--text-primary); border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer;">Users & Bookings</button>
-        </div>
-
-        <div class="admin-grid" id="tab-content-db">
-
-            <!-- 1. STATIONS WORKSPACE -->
-            <div class="admin-card">
-                <h2>🚉 Stations Node Catalog (Neo4j)</h2>
-                
-                <div class="data-list" id="stations-list">
-                    {% for station in stations %}
-                        <div class="data-item">
-                            <span>{{ station }}</span>
-                            <div class="btn-group">
-                                <button class="btn-small btn-edit" onclick="triggerRenameStation('{{ station }}')">Rename</button>
-                                <button class="btn-small btn-delete" onclick="executeDeleteStation('{{ station }}')">Delete</button>
-                            </div>
-                        </div>
-                    {% else %}
-                        <p style="color: var(--text-secondary); font-size: 0.85rem; padding: 1rem;">No stations found.</p>
-                    {% endfor %}
-                </div>
-
-                <form id="add-station-form" class="admin-form">
-                    <div class="form-group">
-                        <label for="station-name-input">Add New Station Node</label>
-                        <input type="text" id="station-name-input" placeholder="e.g. Pune, Mumbai, Delhi..." required autocomplete="off">
-                    </div>
-                    <button type="submit">Add Station Node</button>
-                </form>
-            </div>
-
-            <!-- 2. ROUTES WORKSPACE -->
-            <div class="admin-card">
-                <h2>🔗 Directed Graph Connections (Neo4j)</h2>
-                
-                <div class="data-list" id="routes-list">
-                    {% for route in routes %}
-                        <div class="data-item">
-                            <span>
-                                <strong>[{{ route.route_id }}]</strong> 
-                                {{ route.source }} ➔ {{ route.destination }}
-                            </span>
-                            <button class="btn-small btn-delete" onclick="executeDeleteRoute({{ route.route_id }})">Delete</button>
-                        </div>
-                    {% else %}
-                        <p style="color: var(--text-secondary); font-size: 0.85rem; padding: 1rem;">No routes found.</p>
-                    {% endfor %}
-                </div>
-
-                <form id="add-route-form" class="admin-form">
-                    <div class="form-group">
-                        <label for="route-source-select">Source Station</label>
-                        <select id="route-source-select" required>
-                            <option value="">Select Origin Station...</option>
-                            {% for station in stations %}
-                                <option value="{{ station }}">{{ station }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="route-dest-select">Destination Station</label>
-                        <select id="route-dest-select" required>
-                            <option value="">Select Target Station...</option>
-                            {% for station in stations %}
-                                <option value="{{ station }}">{{ station }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit">Establish Graph Connection</button>
-                </form>
-            </div>
-
-            <!-- 3. SCHEDULES WORKSPACE (MySQL) -->
-            <div class="admin-card schedules-section">
-                <h2>📅 Active Service Schedules Catalog (MySQL)</h2>
-
-                <div class="table-wrapper">
-                    <table class="schedules-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Route (ID)</th>
-                                <th>Service</th>
-                                <th>Departure</th>
-                                <th>Arrival</th>
-                                <th>Seats Available</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="schedules-table-body">
-                            {% for s in schedules %}
-                                <tr>
-                                    <td><strong>#{{ s.schedule_id }}</strong></td>
-                                    <td>{{ s.source }} ➔ {{ s.destination }} <small style="color: var(--text-secondary)">({{ s.route_id }})</small></td>
-                                    <td>{{ s.transport_type }}</td>
-                                    <td>{{ s.departure_time }}</td>
-                                    <td>{{ s.arrival_time }}</td>
-                                    <td>{{ s.available_seats }} seats</td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button class="btn-small btn-edit" onclick="triggerEditSchedule({{ s.schedule_id }}, {{ s.route_id }}, '{{ s.transport_type }}', '{{ s.departure_time }}', '{{ s.arrival_time }}', {{ s.available_seats }})">Edit</button>
-                                            <button class="btn-small btn-delete" onclick="executeDeleteSchedule({{ s.schedule_id }})">Delete</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No schedules registered.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3 style="color: #a5b4fc; font-family: var(--font-heading); margin-top: 1rem;" id="schedule-form-heading">Create New Schedule Record</h3>
-                <form id="schedule-form" class="admin-form">
-                    <input type="hidden" id="edit-schedule-id" value="">
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label for="schedule-route-select">Select Connected Route Pathway</label>
-                            <select id="schedule-route-select" required>
-                                <option value="">Choose Path...</option>
-                                {% for route in routes %}
-                                    <option value="{{ route.route_id }}">{{ route.source }} ➔ {{ route.destination }} (ID: {{ route.route_id }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="schedule-service-select">Select Service Type</label>
-                            <select id="schedule-service-select" required>
-                                <option value="">Choose service...</option>
-                                <option value="Flight">Flight</option>
-                                <option value="Train">Train</option>
-                                <option value="Bus">Bus</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-                        <div class="form-group">
-                            <label for="schedule-dep-input">Departure Time</label>
-                            <input type="text" id="schedule-dep-input" placeholder="e.g. 08:30:00" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="schedule-arr-input">Arrival Time</label>
-                            <input type="text" id="schedule-arr-input" placeholder="e.g. 10:45:00" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="schedule-seats-input">Available Seats</label>
-                            <input type="number" id="schedule-seats-input" min="1" placeholder="e.g. 50" required>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 1rem;">
-                        <button type="submit" style="flex: 1;" id="schedule-submit-btn">Save Schedule Entry</button>
-                        <button type="button" id="schedule-cancel-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: white; border-radius: 8px; padding: 0.6rem; cursor: pointer; display: none;" onclick="resetScheduleForm()">Cancel Edit</button>
-                    </div>
-                </form>
+            <div class="nav-actions">
+                <a href="/" class="btn-secondary"><i data-lucide="arrow-left" class="btn-icon"></i> Public Gateway</a>
+                <a href="{{ url_for('admin_logout') }}" class="btn-secondary btn-danger-outline"><i data-lucide="log-out" class="btn-icon"></i> Logout</a>
             </div>
         </div>
+    </header>
 
-        <div class="admin-grid" id="tab-content-users" style="display: none;">
-            <!-- 4. REGISTERED USERS WORKSPACE -->
-            <div class="admin-card schedules-section">
-                <h2>👥 Registered System Users</h2>
-                <div class="table-wrapper">
-                    <table class="schedules-table">
-                        <thead>
-                            <tr>
-                                <th>User ID</th>
-                                <th>Username</th>
-                                <th>Email</th>
-                                <th>Registration Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for u in users %}
-                                <tr>
-                                    <td><strong>#{{ u.user_id }}</strong></td>
-                                    <td>{{ u.username }}</td>
-                                    <td>{{ u.email }}</td>
-                                    <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '' }}</td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No users registered yet.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- Alert Notification Panel -->
+    <div id="alert-panel" class="alert-banner"></div>
 
-            <!-- 5. ALL BOOKINGS WORKSPACE -->
-            <div class="admin-card schedules-section" style="margin-top: 2rem;">
-                <h2>🎫 Active Bookings Catalog</h2>
-                <div class="table-wrapper" style="margin-bottom: 2rem;">
-                    <table class="schedules-table">
-                        <thead>
-                            <tr>
-                                <th>Booking ID</th>
-                                <th>Passenger Name</th>
-                                <th>Email</th>
-                                <th>Route</th>
-                                <th>Travel Date</th>
-                                <th>Seats</th>
-                                <th>Booking Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for b in active_bookings %}
-                                <tr>
-                                    <td><strong>#{{ b.booking_id }}</strong></td>
-                                    <td>{{ b.passenger_name }}</td>
-                                    <td>{{ b.passenger_email }}</td>
-                                    <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: #fbcfe8;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
-                                    <td>{{ b.travel_date }}</td>
-                                    <td>{{ b.seats_booked }}</td>
-                                    <td>{{ b.booking_time }}</td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No active bookings found.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <h2>⏳ Expired Bookings History</h2>
-                <div class="table-wrapper">
-                    <table class="schedules-table">
-                        <thead>
-                            <tr>
-                                <th>Booking ID</th>
-                                <th>Passenger Name</th>
-                                <th>Email</th>
-                                <th>Route</th>
-                                <th>Travel Date</th>
-                                <th>Seats</th>
-                                <th>Booking Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for b in expired_bookings %}
-                                <tr style="opacity: 0.7;">
-                                    <td><strong>#{{ b.booking_id }}</strong></td>
-                                    <td>{{ b.passenger_name }}</td>
-                                    <td>{{ b.passenger_email }}</td>
-                                    <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: #fbcfe8;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
-                                    <td>{{ b.travel_date }}</td>
-                                    <td>{{ b.seats_booked }}</td>
-                                    <td>{{ b.booking_time }}</td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No expired bookings found.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <h2 style="color: #fca5a5; margin-top: 2rem;">❌ Cancelled Bookings</h2>
-                <div class="table-wrapper">
-                    <table class="schedules-table">
-                        <thead>
-                            <tr>
-                                <th>Booking ID</th>
-                                <th>Passenger Name</th>
-                                <th>Email</th>
-                                <th>Route</th>
-                                <th>Travel Date</th>
-                                <th>Seats</th>
-                                <th>Booking Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for b in cancelled_bookings %}
-                                <tr style="opacity: 0.6; color: #fca5a5;">
-                                    <td><strong>#{{ b.booking_id }}</strong></td>
-                                    <td>{{ b.passenger_name }}</td>
-                                    <td>{{ b.passenger_email }}</td>
-                                    <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: #fbcfe8;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
-                                    <td>{{ b.travel_date }}</td>
-                                    <td>{{ b.seats_booked }}</td>
-                                    <td>{{ b.booking_time }}</td>
-                                </tr>
-                            {% else %}
-                                <tr>
-                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No cancelled bookings found.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-        </div>
+    <!-- Tab Navigation -->
+    <div style="display: flex; gap: 0.75rem; margin-bottom: 2rem; flex-wrap: wrap;">
+        <button onclick="switchTab('db')" id="tab-btn-db" class="tab-btn active">
+            <i data-lucide="database" class="btn-icon"></i> Database Management
+        </button>
+        <button onclick="switchTab('users')" id="tab-btn-users" class="tab-btn inactive">
+            <i data-lucide="users" class="btn-icon"></i> Users & Bookings Catalog
+        </button>
     </div>
 
-    <!-- Rename Station Modal Popup -->
-    <div class="modal-overlay" id="rename-station-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>✏️ Rename Station Node</h3>
-                <button class="close-modal" onclick="closeRenameModal()">×</button>
+    <!-- TAB 1: DATABASE MANAGEMENT -->
+    <div class="admin-grid" id="tab-content-db">
+
+        <!-- 1. STATIONS WORKSPACE -->
+        <div class="admin-card">
+            <h2><i data-lucide="map-pin" class="btn-icon"></i> Station Nodes (Neo4j Graph)</h2>
+            
+            <div class="data-list" id="stations-list">
+                {% for station in stations %}
+                    <div class="data-item">
+                        <span style="font-weight: 600;">{{ station }}</span>
+                        <div class="btn-group">
+                            <button class="btn-small btn-edit" onclick="triggerRenameStation('{{ station }}')">
+                                <i data-lucide="edit-2" class="btn-icon" style="width: 12px; height: 12px;"></i> Rename
+                            </button>
+                            <button class="btn-small btn-delete" onclick="executeDeleteStation('{{ station }}')">
+                                <i data-lucide="trash-2" class="btn-icon" style="width: 12px; height: 12px;"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                {% else %}
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; padding: 1rem; text-align: center;">No stations found.</p>
+                {% endfor %}
             </div>
-            <form id="rename-station-form" class="admin-form">
-                <input type="hidden" id="rename-old-name">
+
+            <form id="add-station-form" class="admin-form">
                 <div class="form-group">
-                    <label>Current Name</label>
-                    <input type="text" id="rename-old-display" disabled style="background: rgba(255,255,255,0.02); color: var(--text-secondary);">
+                    <label for="station-name-input">Add New Station Node</label>
+                    <input type="text" id="station-name-input" class="form-input" placeholder="e.g. Pune, Mumbai, Delhi..." required autocomplete="off">
+                </div>
+                <button type="submit" class="btn-primary" style="padding: 0.75rem; font-size: 0.95rem;">
+                    <i data-lucide="plus-circle" class="btn-icon"></i> Add Station Node
+                </button>
+            </form>
+        </div>
+
+        <!-- 2. ROUTES WORKSPACE -->
+        <div class="admin-card">
+            <h2><i data-lucide="git-branch" class="btn-icon"></i> Directed Connections (Neo4j Graph)</h2>
+            
+            <div class="data-list" id="routes-list">
+                {% for route in routes %}
+                    <div class="data-item">
+                        <span>
+                            <strong style="color: var(--primary-color);">[ID {{ route.route_id }}]</strong> 
+                            {{ route.source }} ➔ {{ route.destination }}
+                        </span>
+                        <button class="btn-small btn-delete" onclick="executeDeleteRoute({{ route.route_id }})">
+                            <i data-lucide="trash-2" class="btn-icon" style="width: 12px; height: 12px;"></i> Delete
+                        </button>
+                    </div>
+                {% else %}
+                    <p style="color: var(--text-secondary); font-size: 0.88rem; padding: 1rem; text-align: center;">No directed connections found.</p>
+                {% endfor %}
+            </div>
+
+            <form id="add-route-form" class="admin-form">
+                <div class="form-group">
+                    <label for="route-source-select">Source Station</label>
+                    <select id="route-source-select" class="form-input" required>
+                        <option value="">Select Origin Station...</option>
+                        {% for station in stations %}
+                            <option value="{{ station }}">{{ station }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label for="rename-new-name">New Station Name</label>
-                    <input type="text" id="rename-new-name" required autocomplete="off">
+                    <label for="route-dest-select">Destination Station</label>
+                    <select id="route-dest-select" class="form-input" required>
+                        <option value="">Select Target Station...</option>
+                        {% for station in stations %}
+                            <option value="{{ station }}">{{ station }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <button type="submit">Confirm Rename</button>
+                <button type="submit" class="btn-primary" style="padding: 0.75rem; font-size: 0.95rem;">
+                    <i data-lucide="link" class="btn-icon"></i> Establish Connection
+                </button>
+            </form>
+        </div>
+
+        <!-- 3. SCHEDULES WORKSPACE (MySQL) -->
+        <div class="admin-card schedules-section">
+            <h2><i data-lucide="calendar" class="btn-icon"></i> Active Service Schedules (MySQL)</h2>
+
+            <div class="table-wrapper" style="max-height: 350px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Schedule ID</th>
+                            <th>Route Pathway</th>
+                            <th>Service</th>
+                            <th>Departure</th>
+                            <th>Arrival</th>
+                            <th>Available Seats</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="schedules-table-body">
+                        {% for s in schedules %}
+                            <tr>
+                                <td><strong style="color: var(--primary-color);">#{{ s.schedule_id }}</strong></td>
+                                <td>
+                                    <div style="font-weight: 700;">{{ s.source }} ➔ {{ s.destination }}</div>
+                                    <small style="color: var(--text-secondary)">Route ID: {{ s.route_id }}</small>
+                                </td>
+                                <td>
+                                    <span class="transport-badge {% if 'flight' in s.transport_type|lower %}badge-flight{% elif 'bus' in s.transport_type|lower %}badge-bus{% else %}badge-train{% endif %}">
+                                        {{ s.transport_type }}
+                                    </span>
+                                </td>
+                                <td><strong>{{ s.departure_time }}</strong></td>
+                                <td>{{ s.arrival_time or 'N/A' }}</td>
+                                <td>
+                                    <span class="seats-pill {% if s.available_seats < 10 %}seats-low{% else %}seats-available{% endif %}">
+                                        {{ s.available_seats }} seats
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn-small btn-edit" onclick="triggerEditSchedule({{ s.schedule_id }}, {{ s.route_id }}, '{{ s.transport_type }}', '{{ s.departure_time }}', '{{ s.arrival_time }}', {{ s.available_seats }})">
+                                            <i data-lucide="edit-2" class="btn-icon" style="width: 12px; height: 12px;"></i> Edit
+                                        </button>
+                                        <button class="btn-small btn-delete" onclick="executeDeleteSchedule({{ s.schedule_id }})">
+                                            <i data-lucide="trash-2" class="btn-icon" style="width: 12px; height: 12px;"></i> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No schedules registered in database.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="color: var(--primary-color); font-family: var(--font-heading); margin-top: 1rem; font-size: 1.15rem;" id="schedule-form-heading">
+                Create New Schedule Record
+            </h3>
+            <form id="schedule-form" class="admin-form">
+                <input type="hidden" id="edit-schedule-id" value="">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="schedule-route-select">Select Connected Route Pathway</label>
+                        <select id="schedule-route-select" class="form-input" required>
+                            <option value="">Choose Pathway...</option>
+                            {% for route in routes %}
+                                <option value="{{ route.route_id }}">{{ route.source }} ➔ {{ route.destination }} (ID: {{ route.route_id }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule-service-select">Service Type</label>
+                        <select id="schedule-service-select" class="form-input" required>
+                            <option value="">Choose Service...</option>
+                            <option value="Flight">Flight</option>
+                            <option value="Train">Train</option>
+                            <option value="Bus">Bus</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="schedule-dep-input">Departure Time</label>
+                        <input type="text" id="schedule-dep-input" class="form-input" placeholder="e.g. 08:30:00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule-arr-input">Arrival Time</label>
+                        <input type="text" id="schedule-arr-input" class="form-input" placeholder="e.g. 10:45:00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule-seats-input">Available Seats</label>
+                        <input type="number" id="schedule-seats-input" class="form-input" min="1" placeholder="e.g. 50" required>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                    <button type="submit" class="btn-primary" style="flex: 1;" id="schedule-submit-btn">
+                        <i data-lucide="check" class="btn-icon"></i> Save Schedule Entry
+                    </button>
+                    <button type="button" id="schedule-cancel-btn" class="btn-secondary" style="display: none;" onclick="resetScheduleForm()">
+                        <i data-lucide="x" class="btn-icon"></i> Cancel Edit
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
-    <script>
-        const alertPanel = document.getElementById('alert-panel');
+    <!-- TAB 2: USERS & BOOKINGS -->
+    <div class="admin-grid" id="tab-content-users" style="display: none;">
+        <!-- 4. REGISTERED USERS -->
+        <div class="admin-card schedules-section">
+            <h2><i data-lucide="users" class="btn-icon"></i> Registered User Accounts</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Email Address</th>
+                            <th>Registration Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                            <tr>
+                                <td><strong style="color: var(--primary-color);">#{{ u.user_id }}</strong></td>
+                                <td style="font-weight: 700;">{{ u.username }}</td>
+                                <td style="color: var(--text-secondary);">{{ u.email }}</td>
+                                <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else 'N/A' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No registered users found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        function switchTab(tabId) {
-            // Update buttons
-            document.getElementById('tab-btn-db').style.background = tabId === 'db' ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)';
-            document.getElementById('tab-btn-db').style.color = tabId === 'db' ? 'white' : 'var(--text-primary)';
-            
-            document.getElementById('tab-btn-users').style.background = tabId === 'users' ? 'var(--primary-color)' : 'rgba(255,255,255,0.1)';
-            document.getElementById('tab-btn-users').style.color = tabId === 'users' ? 'white' : 'var(--text-primary)';
+        <!-- 5. ACTIVE BOOKINGS -->
+        <div class="admin-card schedules-section">
+            <h2><i data-lucide="check-circle" class="btn-icon" style="color: var(--success-color);"></i> Active / Confirmed Bookings</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Passenger Details</th>
+                            <th>Route Pathway</th>
+                            <th>Travel Date</th>
+                            <th>Seats</th>
+                            <th>Booked At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in active_bookings %}
+                            <tr>
+                                <td><strong style="color: var(--primary-color);">#{{ b.booking_id }}</strong></td>
+                                <td>
+                                    <div style="font-weight: 600;">{{ b.passenger_name }}</div>
+                                    <small style="color: var(--text-secondary);">{{ b.passenger_email }}</small>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 700;">{{ b.source }} ➔ {{ b.destination }}</div>
+                                    <small style="color: var(--text-secondary); font-weight: 500;">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small>
+                                </td>
+                                <td><strong>{{ b.travel_date }}</strong></td>
+                                <td>
+                                    <span class="seats-pill seats-available">
+                                        {{ b.seats_booked }} seat{{ 's' if b.seats_booked > 1 else '' }}
+                                    </span>
+                                </td>
+                                <td style="color: var(--text-secondary); font-size: 0.88rem;">{{ b.booking_time }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No active bookings found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-            // Update content visibility
-            document.getElementById('tab-content-db').style.display = tabId === 'db' ? 'grid' : 'none';
-            document.getElementById('tab-content-users').style.display = tabId === 'users' ? 'grid' : 'none';
+        <!-- 6. EXPIRED BOOKINGS -->
+        <div class="admin-card schedules-section">
+            <h2><i data-lucide="clock" class="btn-icon"></i> Past / Completed Bookings History</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Passenger Details</th>
+                            <th>Route Pathway</th>
+                            <th>Travel Date</th>
+                            <th>Seats</th>
+                            <th>Booked At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in expired_bookings %}
+                            <tr style="opacity: 0.75;">
+                                <td><strong>#{{ b.booking_id }}</strong></td>
+                                <td>
+                                    <div style="font-weight: 600;">{{ b.passenger_name }}</div>
+                                    <small style="color: var(--text-secondary);">{{ b.passenger_email }}</small>
+                                </td>
+                                <td>
+                                    <div>{{ b.source }} ➔ {{ b.destination }}</div>
+                                    <small style="color: var(--text-secondary);">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small>
+                                </td>
+                                <td>{{ b.travel_date }}</td>
+                                <td>{{ b.seats_booked }}</td>
+                                <td style="color: var(--text-secondary); font-size: 0.88rem;">{{ b.booking_time }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No expired bookings found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 7. CANCELLED BOOKINGS -->
+        <div class="admin-card schedules-section">
+            <h2 style="color: var(--error-color);"><i data-lucide="x-circle" class="btn-icon"></i> Cancelled Bookings</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Passenger Details</th>
+                            <th>Route Pathway</th>
+                            <th>Travel Date</th>
+                            <th>Seats</th>
+                            <th>Booked At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in cancelled_bookings %}
+                            <tr style="opacity: 0.75;">
+                                <td><strong style="color: var(--error-color);">#{{ b.booking_id }}</strong></td>
+                                <td>
+                                    <div style="font-weight: 600;">{{ b.passenger_name }}</div>
+                                    <small style="color: var(--text-secondary);">{{ b.passenger_email }}</small>
+                                </td>
+                                <td>
+                                    <div>{{ b.source }} ➔ {{ b.destination }}</div>
+                                    <small style="color: var(--text-secondary);">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small>
+                                </td>
+                                <td>{{ b.travel_date }}</td>
+                                <td>
+                                    <span class="seats-pill seats-soldout">Cancelled ({{ b.seats_booked }} seats)</span>
+                                </td>
+                                <td style="color: var(--text-secondary); font-size: 0.88rem;">{{ b.booking_time }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No cancelled bookings found.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Rename Station Modal Popup -->
+<div class="modal-overlay" id="rename-station-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i data-lucide="edit" class="btn-icon"></i> Rename Station Node</h3>
+            <button class="close-modal" onclick="closeRenameModal()" title="Close">&times;</button>
+        </div>
+        <form id="rename-station-form" class="admin-form">
+            <input type="hidden" id="rename-old-name">
+            <div class="form-group">
+                <label>Current Name</label>
+                <input type="text" id="rename-old-display" class="form-input" disabled style="background: #f1f5f9; color: var(--text-primary); font-weight: 600;">
+            </div>
+            <div class="form-group">
+                <label for="rename-new-name">New Station Name</label>
+                <input type="text" id="rename-new-name" class="form-input" placeholder="Enter updated name" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 0.5rem; width: 100%;">
+                <i data-lucide="check" class="btn-icon"></i> Confirm Rename
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const alertPanel = document.getElementById('alert-panel');
+
+    function switchTab(tabId) {
+        const btnDb = document.getElementById('tab-btn-db');
+        const btnUsers = document.getElementById('tab-btn-users');
+        const contentDb = document.getElementById('tab-content-db');
+        const contentUsers = document.getElementById('tab-content-users');
+
+        if (tabId === 'db') {
+            btnDb.className = 'tab-btn active';
+            btnUsers.className = 'tab-btn inactive';
+            contentDb.style.display = 'grid';
+            contentUsers.style.display = 'none';
+        } else {
+            btnDb.className = 'tab-btn inactive';
+            btnUsers.className = 'tab-btn active';
+            contentDb.style.display = 'none';
+            contentUsers.style.display = 'grid';
         }
+        if (window.lucide) lucide.createIcons();
+    }
 
-        function showAlert(message, isSuccess = true) {
-            alertPanel.textContent = message;
-            alertPanel.className = `alert-banner ${isSuccess ? 'alert-success' : 'alert-error'}`;
-            alertPanel.style.display = 'block';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            setTimeout(() => {
-                alertPanel.style.display = 'none';
-            }, 6000);
-        }
+    function showAlert(message, isSuccess = true) {
+        alertPanel.innerHTML = `<i data-lucide="${isSuccess ? 'check-circle' : 'alert-circle'}" class="btn-icon"></i> ${message}`;
+        alertPanel.className = `alert-banner ${isSuccess ? 'alert-success' : 'alert-error'}`;
+        alertPanel.style.display = 'flex';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => {
+            alertPanel.style.display = 'none';
+        }, 5000);
+    }
 
-        // --- 1. STATIONS ENDPOINTS ---
-        document.getElementById('add-station-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const stationInput = document.getElementById('station-name-input');
-            const name = stationInput.value.trim();
-            if (!name) return;
+    // 1. STATIONS ENDPOINTS
+    document.getElementById('add-station-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const stationInput = document.getElementById('station-name-input');
+        const name = stationInput.value.trim();
+        if (!name) return;
 
-            try {
-                const response = await fetch('/admin/add-station', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showAlert(data.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.message, false);
-                }
-            } catch (err) {
-                showAlert("Server request failed while adding station.", false);
-            }
-        });
-
-        async function executeDeleteStation(name) {
-            if (!confirm(`Are you sure you want to delete "${name}"? This will detach and delete all routes and schedules associated with this station.`)) {
-                return;
-            }
-            try {
-                const response = await fetch('/admin/delete-station', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showAlert(data.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.message, false);
-                }
-            } catch (err) {
-                showAlert("Server request failed while deleting station.", false);
-            }
-        }
-
-        // Rename modal triggers
-        const renameModal = document.getElementById('rename-station-modal');
-        function triggerRenameStation(name) {
-            document.getElementById('rename-old-name').value = name;
-            document.getElementById('rename-old-display').value = name;
-            document.getElementById('rename-new-name').value = name;
-            renameModal.classList.add('active');
-        }
-
-        function closeRenameModal() {
-            renameModal.classList.remove('active');
-        }
-
-        document.getElementById('rename-station-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const old_name = document.getElementById('rename-old-name').value;
-            const new_name = document.getElementById('rename-new-name').value.trim();
-            if (!new_name || old_name === new_name) {
-                closeRenameModal();
-                return;
-            }
-            try {
-                const response = await fetch('/admin/rename-station', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ old_name, new_name })
-                });
-                const data = await response.json();
-                closeRenameModal();
-                if (data.success) {
-                    showAlert(data.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.message, false);
-                }
-            } catch (err) {
-                showAlert("Server request failed while renaming station.", false);
-            }
-        });
-
-        // --- 2. ROUTES ENDPOINTS ---
-        document.getElementById('add-route-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const source = document.getElementById('route-source-select').value;
-            const destination = document.getElementById('route-dest-select').value;
-            if (!source || !destination) return;
-
-            try {
-                const response = await fetch('/admin/add-route', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ source, destination })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showAlert(data.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.message, false);
-                }
-            } catch (err) {
-                showAlert("Server request failed while adding route connection.", false);
-            }
-        });
-
-        async function executeDeleteRoute(route_id) {
-            if (!confirm(`Are you sure you want to delete directed route ID ${route_id}? All corresponding schedules will be cleared from MySQL.`)) {
-                return;
-            }
-            try {
-                const response = await fetch('/admin/delete-route', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ route_id })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showAlert(data.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.message, false);
-                }
-            } catch (err) {
-                showAlert("Server request failed while deleting route.", false);
-            }
-        }
-
-        // --- 3. SCHEDULES ENDPOINTS ---
-        const scheduleForm = document.getElementById('schedule-form');
-        const editScheduleId = document.getElementById('edit-schedule-id');
-        const scheduleRouteSelect = document.getElementById('schedule-route-select');
-        const scheduleServiceSelect = document.getElementById('schedule-service-select');
-        const scheduleDepInput = document.getElementById('schedule-dep-input');
-        const scheduleArrInput = document.getElementById('schedule-arr-input');
-        const scheduleSeatsInput = document.getElementById('schedule-seats-input');
-        const scheduleSubmitBtn = document.getElementById('schedule-submit-btn');
-        const scheduleCancelBtn = document.getElementById('schedule-cancel-btn');
-        const scheduleFormHeading = document.getElementById('schedule-form-heading');
-
-        function triggerEditSchedule(id, routeId, type, dep, arr, seats) {
-            editScheduleId.value = id;
-            scheduleRouteSelect.value = routeId;
-            scheduleServiceSelect.value = type;
-            scheduleDepInput.value = dep;
-            scheduleArrInput.value = arr;
-            scheduleSeatsInput.value = seats;
-            
-            // Toggle edit view styling
-            scheduleFormHeading.textContent = `Modify Schedule Record #${id}`;
-            scheduleSubmitBtn.textContent = "Confirm Changes";
-            scheduleCancelBtn.style.display = "block";
-            scheduleRouteSelect.disabled = true; // Route ID cannot be changed once created (seeding integrity)
-            
-            window.scrollTo({
-                top: scheduleForm.offsetTop - 50,
-                behavior: 'smooth'
+        try {
+            const response = await fetch('/admin/add-station', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
             });
-        }
-
-        function resetScheduleForm() {
-            editScheduleId.value = "";
-            scheduleForm.reset();
-            scheduleFormHeading.textContent = "Create New Schedule Record";
-            scheduleSubmitBtn.textContent = "Save Schedule Entry";
-            scheduleCancelBtn.style.display = "none";
-            scheduleRouteSelect.disabled = false;
-        }
-
-        scheduleForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = editScheduleId.value;
-            const route_id = scheduleRouteSelect.value;
-            const transport_type = scheduleServiceSelect.value;
-            const departure_time = scheduleDepInput.value.trim();
-            const arrival_time = scheduleArrInput.value.trim();
-            const available_seats = scheduleSeatsInput.value;
-
-            const isEdit = id !== "";
-            const endpoint = isEdit ? '/admin/update-schedule' : '/admin/add-schedule';
-            const payload = isEdit ? 
-                { schedule_id: id, transport_type, departure_time, arrival_time, available_seats } : 
-                { route_id, transport_type, departure_time, arrival_time, available_seats };
-
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showAlert(data.message);
-                    resetScheduleForm();
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.message, false);
-                }
-            } catch (err) {
-                showAlert("Server request failed while saving schedule details.", false);
+            const data = await response.json();
+            if (data.success) {
+                showAlert(data.message, true);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, false);
             }
+        } catch (err) {
+            showAlert("Server request failed while adding station.", false);
+        }
+    });
+
+    async function executeDeleteStation(name) {
+        if (!confirm(`Are you sure you want to delete "${name}"? This will detach and delete all routes and schedules associated with this station.`)) {
+            return;
+        }
+        try {
+            const response = await fetch('/admin/delete-station', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showAlert(data.message, true);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, false);
+            }
+        } catch (err) {
+            showAlert("Server request failed while deleting station.", false);
+        }
+    }
+
+    // Rename modal
+    const renameModal = document.getElementById('rename-station-modal');
+    function triggerRenameStation(name) {
+        document.getElementById('rename-old-name').value = name;
+        document.getElementById('rename-old-display').value = name;
+        document.getElementById('rename-new-name').value = name;
+        renameModal.classList.add('active');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeRenameModal() {
+        renameModal.classList.remove('active');
+    }
+
+    document.getElementById('rename-station-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const old_name = document.getElementById('rename-old-name').value;
+        const new_name = document.getElementById('rename-new-name').value.trim();
+        if (!new_name || old_name === new_name) {
+            closeRenameModal();
+            return;
+        }
+        try {
+            const response = await fetch('/admin/rename-station', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ old_name, new_name })
+            });
+            const data = await response.json();
+            closeRenameModal();
+            if (data.success) {
+                showAlert(data.message, true);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, false);
+            }
+        } catch (err) {
+            showAlert("Server request failed while renaming station.", false);
+        }
+    });
+
+    // 2. ROUTES ENDPOINTS
+    document.getElementById('add-route-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const source = document.getElementById('route-source-select').value;
+        const destination = document.getElementById('route-dest-select').value;
+        if (!source || !destination) return;
+
+        try {
+            const response = await fetch('/admin/add-route', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source, destination })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showAlert(data.message, true);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, false);
+            }
+        } catch (err) {
+            showAlert("Server request failed while adding route connection.", false);
+        }
+    });
+
+    async function executeDeleteRoute(route_id) {
+        if (!confirm(`Are you sure you want to delete route #${route_id}? All corresponding schedules will be cleared from MySQL.`)) {
+            return;
+        }
+        try {
+            const response = await fetch('/admin/delete-route', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ route_id })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showAlert(data.message, true);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, false);
+            }
+        } catch (err) {
+            showAlert("Server request failed while deleting route.", false);
+        }
+    }
+
+    // 3. SCHEDULES ENDPOINTS
+    const scheduleForm = document.getElementById('schedule-form');
+    const editScheduleId = document.getElementById('edit-schedule-id');
+    const scheduleRouteSelect = document.getElementById('schedule-route-select');
+    const scheduleServiceSelect = document.getElementById('schedule-service-select');
+    const scheduleDepInput = document.getElementById('schedule-dep-input');
+    const scheduleArrInput = document.getElementById('schedule-arr-input');
+    const scheduleSeatsInput = document.getElementById('schedule-seats-input');
+    const scheduleSubmitBtn = document.getElementById('schedule-submit-btn');
+    const scheduleCancelBtn = document.getElementById('schedule-cancel-btn');
+    const scheduleFormHeading = document.getElementById('schedule-form-heading');
+
+    function triggerEditSchedule(id, routeId, type, dep, arr, seats) {
+        editScheduleId.value = id;
+        scheduleRouteSelect.value = routeId;
+        scheduleServiceSelect.value = type;
+        scheduleDepInput.value = dep;
+        scheduleArrInput.value = arr;
+        scheduleSeatsInput.value = seats;
+        
+        scheduleFormHeading.innerHTML = `<i data-lucide="edit-3" class="btn-icon"></i> Modify Schedule Record #${id}`;
+        scheduleSubmitBtn.innerHTML = '<i data-lucide="check" class="btn-icon"></i> Confirm Changes';
+        scheduleCancelBtn.style.display = "inline-flex";
+        scheduleRouteSelect.disabled = true;
+        
+        window.scrollTo({
+            top: scheduleForm.offsetTop - 50,
+            behavior: 'smooth'
         });
+        if (window.lucide) lucide.createIcons();
+    }
 
-        async function executeDeleteSchedule(schedule_id) {
-            if (!confirm(`Are you sure you want to delete schedule #${schedule_id}?`)) {
-                return;
+    function resetScheduleForm() {
+        editScheduleId.value = "";
+        scheduleForm.reset();
+        scheduleFormHeading.textContent = "Create New Schedule Record";
+        scheduleSubmitBtn.innerHTML = '<i data-lucide="check" class="btn-icon"></i> Save Schedule Entry';
+        scheduleCancelBtn.style.display = "none";
+        scheduleRouteSelect.disabled = false;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    scheduleForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = editScheduleId.value;
+        const route_id = scheduleRouteSelect.value;
+        const transport_type = scheduleServiceSelect.value;
+        const departure_time = scheduleDepInput.value.trim();
+        const arrival_time = scheduleArrInput.value.trim();
+        const available_seats = scheduleSeatsInput.value;
+
+        const isEdit = id !== "";
+        const endpoint = isEdit ? '/admin/update-schedule' : '/admin/add-schedule';
+        const payload = isEdit ? 
+            { schedule_id: id, transport_type, departure_time, arrival_time, available_seats } : 
+            { route_id, transport_type, departure_time, arrival_time, available_seats };
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (data.success) {
+                showAlert(data.message, true);
+                resetScheduleForm();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, false);
             }
-            try {
-                const response = await fetch('/admin/delete-schedule', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ schedule_id })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    showAlert(data.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.message, false);
-                }
-            } catch (err) {
-                showAlert("Server request failed while deleting schedule record.", false);
+        } catch (err) {
+            showAlert("Server request failed while saving schedule details.", false);
+        }
+    });
+
+    async function executeDeleteSchedule(schedule_id) {
+        if (!confirm(`Are you sure you want to delete schedule #${schedule_id}?`)) {
+            return;
+        }
+        try {
+            const response = await fetch('/admin/delete-schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ schedule_id })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showAlert(data.message, true);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message, false);
             }
+        } catch (err) {
+            showAlert("Server request failed while deleting schedule record.", false);
         }
-    </script>
-    <script>
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    </script>
+    }
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>
 </body>
 </html>

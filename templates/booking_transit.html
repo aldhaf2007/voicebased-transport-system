@@ -3,176 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#6366f1">
-    <meta name="description" content="Ticket booking page for the Voice Transport Gateway">
-    <title>Book Ticket - Voice Transport Gateway</title>
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="description" content="Transit journey checkout page for Voice Transport Gateway">
+    <title>Transit Checkout - Voice Transport Gateway</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🎫</text></svg>">
     <!-- Lucide Icon Library -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .booking-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .booking-details-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 1rem;
-        }
-
-        .detail-item {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .detail-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .detail-value {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .form-group label {
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--primary-color);
-        }
-
-        .form-input {
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(99, 102, 241, 0.15);
-            border-radius: 8px;
-            color: var(--text-primary);
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            font-family: var(--font-body);
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px var(--primary-glow);
-            background: rgba(255, 255, 255, 0.95);
-        }
-
-        /* Fix calendar icon visibility on light backgrounds */
-        .form-input::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-            opacity: 0.7;
-        }
-        
-        .form-input::-webkit-calendar-picker-indicator:hover {
-            opacity: 1;
-        }
-
-        .submit-booking-btn {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            font-family: var(--font-body);
-            font-size: 1.05rem;
-            font-weight: 600;
-            padding: 0.85rem;
-            text-align: center;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-top: 1rem;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-        }
-
-        .submit-booking-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
-        }
-
-        .submit-booking-btn:active {
-            transform: translateY(0);
-        }
-
-        .alert-box {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            display: none;
-            animation: fadeIn 0.3s ease-out;
-            font-size: 0.95rem;
-        }
-
-        .alert-box.success {
-            background: rgba(5, 150, 105, 0.12);
-            border: 1px solid rgba(5, 150, 105, 0.3);
-            color: #059669;
-        }
-
-        .alert-box.error {
-            background: rgba(220, 38, 38, 0.12);
-            border: 1px solid rgba(220, 38, 38, 0.3);
-            color: #dc2626;
-        }
-
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .back-link {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-size: 0.9rem;
-            border: 1px solid var(--card-border);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .back-link:hover {
-            background: rgba(99, 102, 241, 0.1);
-            border-color: var(--accent-color);
-            color: var(--accent-color);
-        }
-
-        .leg-indicator {
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.2);
-            color: var(--primary-color);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 0.5rem;
-        }
-    </style>
 </head>
 <body>
 
@@ -184,168 +21,212 @@
     <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
+<div class="dashboard-container" style="max-width: 720px;">
+    <header>
+        <div class="top-nav">
+            <a href="/" class="btn-secondary"><i data-lucide="arrow-left" class="btn-icon"></i> Return to Search</a>
+            <h2 style="font-family: var(--font-heading); background: linear-gradient(to right, var(--primary-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="layers" class="title-icon"></i> Transit Checkout
+            </h2>
+        </div>
+    </header>
 
+    <main>
+        <div class="alert-box" id="booking-alert"></div>
 
-
-    <div class="dashboard-container" style="max-width: 750px;">
-        <header>
-            <div class="header-actions">
-                <a href="/" class="back-link"><i data-lucide="arrow-left" class="btn-icon" style="margin-right: 6px;"></i> Return to Search</a>
-                <h2 style="font-family: var(--font-heading); background: linear-gradient(to right, var(--primary-color), var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;"><i data-lucide="ticket" class="title-icon" style="color: var(--primary-color); vertical-align: middle;"></i> Ticket Checkout</h2>
+        <h3 style="color: var(--primary-color); font-family: var(--font-heading); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="milestone" class="btn-icon"></i> Connecting Journey Pathway
+        </h3>
+        
+        {% for leg in schedules %}
+        <div class="booking-card" style="margin-bottom: 1.25rem; padding: 1.25rem 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="background: var(--primary-color); color: white; border-radius: 6px; padding: 2px 8px; font-size: 0.75rem; font-weight: 800;">
+                        LEG {{ loop.index }}
+                    </span>
+                    <strong style="color: var(--text-primary); font-size: 1.05rem;">
+                        {{ leg.source }} <i data-lucide="arrow-right" class="btn-icon" style="margin: 0 4px; width: 14px; height: 14px;"></i> {{ leg.destination }}
+                    </strong>
+                </div>
+                <span class="transport-badge {% if 'flight' in leg.transport_type|lower %}badge-flight{% elif 'bus' in leg.transport_type|lower %}badge-bus{% else %}badge-train{% endif %}">
+                    {{ leg.transport_type }}
+                </span>
             </div>
-        </header>
 
-        <main>
-            <div class="alert-box" id="booking-alert"></div>
-
-            <h3 style="color: var(--primary-color); font-family: var(--font-heading); margin-bottom: 1rem;"><i data-lucide="milestone" class="title-icon"></i> Selected Journey</h3>
-            
-            {% for leg in schedules %}
-            <div class="booking-card">
-                <div class="leg-indicator">LEG {{ loop.index }}</div>
-                <h4 style="color: var(--text-primary); font-family: var(--font-heading);">{{ leg.source }} <i data-lucide="arrow-right" class="btn-icon" style="margin: 0 4px; width: 14px; height: 14px; vertical-align: middle;"></i> {{ leg.destination }}</h4>
-                <div class="booking-details-grid">
-                    <div class="detail-item">
-                        <span class="detail-label">Service</span>
-                        <span class="detail-value">{{ leg.transport_type }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Departure</span>
-                        <span class="detail-value">{{ leg.departure_time }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Arrival</span>
-                        <span class="detail-value">{{ leg.arrival_time or 'N/A' }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Available Seats</span>
-                        <span class="detail-value val-seats" data-schedule-id="{{ leg.schedule_id }}" style="color: var(--success-color);">{{ leg.available_seats }}</span>
-                    </div>
+            <div class="booking-details-grid" style="margin-top: 0.75rem; padding-top: 0.75rem;">
+                <div class="detail-item">
+                    <span class="detail-label">Departure</span>
+                    <span class="detail-value">{{ leg.departure_time }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Arrival</span>
+                    <span class="detail-value">{{ leg.arrival_time or 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Available Capacity</span>
+                    <span class="detail-value seats-pill {% if leg.available_seats < 10 %}seats-low{% else %}seats-available{% endif %}" style="display: inline-flex; width: fit-content;">
+                        <i data-lucide="users" class="btn-icon" style="width: 14px; height: 14px;"></i> {{ leg.available_seats }} seats
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Schedule ID</span>
+                    <span class="detail-value" style="color: var(--text-secondary);">#{{ leg.schedule_id }}</span>
                 </div>
             </div>
-            {% endfor %}
+        </div>
+        {% endfor %}
 
-            <form id="booking-form" class="booking-form-element">
-                <!-- Comma separated schedule IDs -->
-                <input type="hidden" id="schedule-ids" value="{{ schedule_ids_str }}">
-                
-                <div class="form-group">
-                    <label for="passenger-name">Passenger Name</label>
-                    <input type="text" id="passenger-name" class="form-input" placeholder="e.g. Jane Doe" value="{{ session.get('username', '') }}" required autocomplete="name">
-                </div>
+        <div id="booking-success-container" style="display: none;"></div>
 
-                <div class="form-group">
-                    <label for="passenger-email">Email Address</label>
-                    <input type="email" id="passenger-email" class="form-input" placeholder="e.g. jane.doe@example.com" value="{{ session.get('user_email', '') }}" required autocomplete="email">
-                </div>
-
-                <div class="form-group">
-                    <label for="travel-date">Travel Date</label>
-                    <input type="date" id="travel-date" class="form-input" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="seats-booked">Seats to Book</label>
-                    <input type="number" id="seats-booked" class="form-input" min="1" max="{{ min_available_seats }}" value="1" required>
-                    <small style="color: var(--text-secondary); margin-top: 0.25rem;">Maximum allowed based on limiting leg capacity: {{ min_available_seats }} seats</small>
-                </div>
-
-                <button type="submit" class="submit-booking-btn" id="submit-booking-btn">Book Entire Transit Journey</button>
-            </form>
-        </main>
-    </div>
-
-    <script>
-        // Set default date input to today's date
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const travelDateEl = document.getElementById('travel-date');
-        travelDateEl.value = `${yyyy}-${mm}-${dd}`;
-        travelDateEl.min = `${yyyy}-${mm}-${dd}`;
-
-        const bookingForm = document.getElementById('booking-form');
-        const alertBox = document.getElementById('booking-alert');
-        const submitBtn = document.getElementById('submit-booking-btn');
-
-        function showAlert(message, type) {
-            alertBox.textContent = message;
-            alertBox.className = `alert-box ${type}`;
-            alertBox.style.display = 'block';
+        <form id="booking-form" class="auth-form" style="margin-top: 1.5rem;">
+            <!-- Comma separated schedule IDs -->
+            <input type="hidden" id="schedule-ids" value="{{ schedule_ids_str }}">
             
-            // TTS announce booking updates
-            const audioUrl = `/tts?text=${encodeURIComponent(message)}`;
-            const audio = new Audio(audioUrl);
-            audio.play().catch(err => console.warn("Failed to play TTS audio:", err));
+            <div class="form-group">
+                <label for="passenger-name">Passenger Name</label>
+                <input type="text" id="passenger-name" class="form-input" placeholder="e.g. Jane Doe" value="{{ session.get('username', '') }}" required autocomplete="name">
+            </div>
+
+            <div class="form-group">
+                <label for="passenger-email">Email Address</label>
+                <input type="email" id="passenger-email" class="form-input" placeholder="e.g. jane.doe@example.com" value="{{ session.get('user_email', '') }}" required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+                <label for="travel-date">Travel Date</label>
+                <input type="date" id="travel-date" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+                <label for="seats-booked">Seats to Book</label>
+                <input type="number" id="seats-booked" class="form-input" min="1" max="{{ min_available_seats }}" value="1" required>
+                <small style="color: var(--text-secondary); margin-top: 0.25rem;">
+                    Maximum allowable seats based on limiting leg: <strong>{{ min_available_seats }}</strong>
+                </small>
+            </div>
+
+            <button type="submit" class="submit-booking-btn" id="submit-booking-btn">
+                <i data-lucide="layers" class="btn-icon"></i> Book Entire Transit Journey
+            </button>
+        </form>
+    </main>
+</div>
+
+<script>
+    // Set default date input to today's date
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const minDateStr = `${yyyy}-${mm}-${dd}`;
+    const travelDateEl = document.getElementById('travel-date');
+    travelDateEl.value = minDateStr;
+    travelDateEl.min = minDateStr;
+
+    const bookingForm = document.getElementById('booking-form');
+    const alertBox = document.getElementById('booking-alert');
+    const submitBtn = document.getElementById('submit-booking-btn');
+    const successContainer = document.getElementById('booking-success-container');
+
+    function showAlert(message, type) {
+        alertBox.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="btn-icon"></i> ${message}`;
+        alertBox.className = `alert-box ${type}`;
+        alertBox.style.display = 'flex';
+        if (window.lucide) lucide.createIcons();
+        
+        // Voice notification for booking updates
+        const audioUrl = `/tts?text=${encodeURIComponent(message)}`;
+        const audio = new Audio(audioUrl);
+        audio.play().catch(err => console.warn("Failed to play TTS audio:", err));
+    }
+
+    bookingForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const scheduleIdsStr = document.getElementById('schedule-ids').value;
+        const scheduleIds = scheduleIdsStr.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+        const passengerName = document.getElementById('passenger-name').value.trim();
+        const passengerEmail = document.getElementById('passenger-email').value.trim();
+        const seatsBooked = document.getElementById('seats-booked').value;
+        const travelDate = document.getElementById('travel-date').value;
+
+        alertBox.style.display = 'none';
+
+        if (!travelDate) {
+            showAlert("Please enter a valid travel date", "error");
+            return;
+        }
+        if (travelDate < minDateStr) {
+            showAlert("Travel date cannot be in the past. Please select today or a future date.", "error");
+            return;
         }
 
-        bookingForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> Processing Transit Journey...';
+
+        try {
+            const response = await fetch('/book-transit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    schedule_ids: scheduleIds,
+                    passenger_name: passengerName,
+                    passenger_email: passengerEmail,
+                    seats_booked: parseInt(seatsBooked, 10),
+                    travel_date: travelDate
+                })
+            });
+
+            const data = await response.json();
             
-            const scheduleIdsStr = document.getElementById('schedule-ids').value;
-            const scheduleIds = scheduleIdsStr.split(',').map(id => parseInt(id, 10));
-            const passengerName = document.getElementById('passenger-name').value.trim();
-            const passengerEmail = document.getElementById('passenger-email').value.trim();
-            const seatsBooked = document.getElementById('seats-booked').value;
-            const travelDate = document.getElementById('travel-date').value;
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Processing Transit Booking...';
-            alertBox.style.display = 'none';
-
-            try {
-                                const response = await fetch('/book-transit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        schedule_ids: scheduleIds,
-                        passenger_name: passengerName,
-                        passenger_email: passengerEmail,
-                        seats_booked: parseInt(seatsBooked, 10),
-                        travel_date: travelDate
-                    })
-                });
-
-                const data = await response.json();
+            if (response.ok && data.status === 'Success') {
+                const bookingIds = data.bookings.map(b => '#' + b.booking_id).join(', ');
+                showAlert(`Success! Entire journey booked. Booking IDs: ${bookingIds}.`, 'success');
                 
-                if (response.ok && data.status === 'Success') {
-                    const bookingIds = data.bookings.map(b => b.booking_id).join(', ');
-                    showAlert(`Success! Entire journey booked. Booking IDs: ${bookingIds}.`, 'success');
-                    
-                    // Update remaining seats view per schedule card
-                    data.bookings.forEach(b => {
-                        const cell = document.querySelector(`.val-seats[data-schedule-id="${b.schedule_id}"]`);
-                        if (cell) {
-                            cell.textContent = b.remaining_seats;
-                        }
-                    });
+                bookingForm.style.display = 'none';
+                successContainer.innerHTML = `
+                    <div class="booking-success-card">
+                        <div class="booking-success-icon">
+                            <i data-lucide="check" style="width: 32px; height: 32px; stroke-width: 3;"></i>
+                        </div>
+                        <h3>Transit Journey Confirmed!</h3>
+                        <p style="color: var(--text-secondary); max-width: 500px; margin: 0;">
+                            All ${data.bookings.length} connected journey legs have been successfully reserved: <strong>${bookingIds}</strong>.
+                        </p>
+                        <div class="booking-success-actions">
+                            <a href="/my_bookings" class="btn-primary">
+                                <i data-lucide="ticket" class="btn-icon"></i> View in My Bookings
+                            </a>
+                            <a href="/" class="btn-secondary">
+                                <i data-lucide="search" class="btn-icon"></i> Search More Routes
+                            </a>
+                        </div>
+                    </div>
+                `;
+                successContainer.style.display = 'block';
+                if (window.lucide) lucide.createIcons();
 
-                    // Disable inputs
-                    document.getElementById('passenger-name').disabled = true;
-                    document.getElementById('passenger-email').disabled = true;
-                    document.getElementById('seats-booked').disabled = true;
-                    document.getElementById('travel-date').disabled = true;
-                    submitBtn.style.display = 'none';
-                } else {
-                    showAlert(`Error: ${data.error || 'Failed to complete booking.'}`, 'error');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Book Entire Transit Journey';
-                }
-            } catch (err) {
-                console.error("Booking Error:", err);
-                showAlert("Network Error: Could not connect to booking server.", "error");
+            } else {
+                showAlert(`Error: ${data.error || 'Failed to complete transit booking.'}`, 'error');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Book Entire Transit Journey';
-            } 
-        });
-    </script>
-    <script>
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    </script>
+                submitBtn.innerHTML = '<i data-lucide="layers" class="btn-icon"></i> Book Entire Transit Journey';
+                if (window.lucide) lucide.createIcons();
+            }
+        } catch (err) {
+            console.error("Booking Error:", err);
+            showAlert("Network Error: Could not connect to booking server.", "error");
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i data-lucide="layers" class="btn-icon"></i> Book Entire Transit Journey';
+            if (window.lucide) lucide.createIcons();
+        } 
+    });
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>
 </body>
 </html>

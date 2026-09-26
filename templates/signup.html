@@ -2,107 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#4f46e5">
     <title>Sign Up - Voice Transport Gateway</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🔑</text></svg>">
     <!-- Lucide Icon Library -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .auth-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-            width: 100%;
-            margin-top: 1.5rem;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            text-align: left;
-        }
-        .form-group label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        .form-group input {
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(99, 102, 241, 0.15);
-            border-radius: 12px;
-            padding: 0.8rem 1rem;
-            color: var(--text-primary);
-            font-family: var(--font-body);
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 0 0 4px var(--primary-glow);
-        }
-        .auth-btn {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            border: none;
-            color: white;
-            padding: 0.9rem;
-            border-radius: 12px;
-            font-family: var(--font-heading);
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 0.5rem;
-        }
-        .auth-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px -6px rgba(99, 102, 241, 0.6);
-        }
-        .auth-btn:active {
-            transform: translateY(0);
-        }
-        .auth-footer {
-            margin-top: 1.5rem;
-            text-align: center;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        .auth-footer a {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        .auth-footer a:hover {
-            text-decoration: underline;
-        }
-        .flash-messages {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            width: 100%;
-        }
-        .flash-message {
-            padding: 0.8rem 1.2rem;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .flash-message.error {
-            background: rgba(220, 38, 38, 0.12);
-            border: 1px solid rgba(220, 38, 38, 0.3);
-            color: #dc2626;
-        }
-        .flash-message.success {
-            background: rgba(5, 150, 105, 0.12);
-            border: 1px solid rgba(5, 150, 105, 0.3);
-            color: #059669;
-        }
-    </style>
 </head>
 <body>
 
@@ -114,51 +20,160 @@
     <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
+<div class="dashboard-container auth-container">
+    <header style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="justify-content: center; font-size: 2rem;"><i data-lucide="user-plus" class="header-icon"></i> Sign Up</h1>
+        <p class="subtitle">Create an account to reserve and manage travel tickets</p>
+    </header>
 
+    <div class="alert-box error" id="client-alert" style="display: none; margin-bottom: 1rem;"></div>
 
-    <div class="dashboard-container">
-        <header>
-            <h1><i data-lucide="user-plus" class="header-icon"></i> Sign Up</h1>
-            <p>Create an account to book travel tickets</p>
-        </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+                {% for category, message in messages %}
+                    <div class="alert-box {{ category }}" style="display: flex; margin-bottom: 0;">
+                        <i data-lucide="{{ 'check-circle' if category == 'success' else 'alert-circle' }}" class="btn-icon"></i>
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash-message {{ category }}">{{ message }}</div>
-                    {% endfor %}
+    <form class="auth-form" id="signup-form" method="POST" action="{{ url_for('signup') }}">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" class="form-input" placeholder="Choose a username" autocomplete="username" required>
+        </div>
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email" autocomplete="email" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-wrapper">
+                <input type="password" id="password" name="password" class="form-input" placeholder="Create a secure password" autocomplete="new-password" required>
+                <button type="button" class="password-toggle-btn" onclick="togglePassword('password', this)" title="Show/Hide Password">
+                    <i data-lucide="eye" class="btn-icon"></i>
+                </button>
+            </div>
+
+            <!-- Password Requirements Note -->
+            <div class="password-note-box">
+                <div class="password-note-header">
+                    <i data-lucide="shield-alert" class="req-icon"></i>
+                    <span>Password Security Requirements:</span>
                 </div>
-            {% endif %}
-        {% endwith %}
+                <ul class="password-req-list">
+                    <li id="req-length" class="req-item">
+                        <i data-lucide="circle" class="req-icon"></i>
+                        <span>Minimum 8 characters</span>
+                    </li>
+                    <li id="req-digit" class="req-item">
+                        <i data-lucide="circle" class="req-icon"></i>
+                        <span>At least 1 numeric digit (0-9)</span>
+                    </li>
+                    <li id="req-symbol" class="req-item">
+                        <i data-lucide="circle" class="req-icon"></i>
+                        <span>At least 1 special symbol (!@#$%^&*...)</span>
+                    </li>
+                    <li id="req-case" class="req-item">
+                        <i data-lucide="circle" class="req-icon"></i>
+                        <span>Uppercase & lowercase letters (A-Z, a-z)</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
 
-        <form class="auth-form" method="POST" action="{{ url_for('signup') }}">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Choose a username" autocomplete="username" required>
-            </div>
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" placeholder="Enter your email" autocomplete="email" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Create a secure password" autocomplete="new-password" required>
-            </div>
-            <button type="submit" class="auth-btn">Register</button>
-        </form>
+        <button type="submit" class="btn-primary" style="margin-top: 0.5rem; width: 100%;">
+            <i data-lucide="user-check" class="btn-icon"></i> Create Account
+        </button>
+    </form>
 
-        <div class="auth-footer">
-            Already have an account? <a href="{{ url_for('login') }}">Sign In</a>
-            <br><br>
-            <a href="/" style="font-weight: normal; font-size: 0.85rem; color: var(--text-secondary);"><i data-lucide="arrow-left" class="btn-icon" style="margin-right: 4px; width: 14px; height: 14px; vertical-align: middle;"></i> Back to Dashboard</a>
+    <div style="margin-top: 1.75rem; text-align: center; font-size: 0.92rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem;">
+        <div>
+            Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary-color); font-weight: 700; text-decoration: none;">Sign In</a>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 1rem; align-items: center; border-top: 1px solid rgba(99,102,241,0.1); padding-top: 1rem;">
+            <a href="/" style="font-size: 0.85rem; color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                <i data-lucide="arrow-left" class="btn-icon" style="width: 14px; height: 14px;"></i> Back to Home
+            </a>
         </div>
     </div>
+</div>
 
-    <script>
-        if (window.lucide) {
-            lucide.createIcons();
+<script>
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.setAttribute('data-lucide', 'eye-off');
+        } else {
+            input.type = 'password';
+            icon.setAttribute('data-lucide', 'eye');
         }
-    </script>
+        if (window.lucide) lucide.createIcons();
+    }
+
+    const passwordInput = document.getElementById('password');
+    const reqLength = document.getElementById('req-length');
+    const reqDigit = document.getElementById('req-digit');
+    const reqSymbol = document.getElementById('req-symbol');
+    const reqCase = document.getElementById('req-case');
+    const clientAlert = document.getElementById('client-alert');
+    const signupForm = document.getElementById('signup-form');
+
+    function updateRequirement(el, isSatisfied) {
+        const icon = el.querySelector('i');
+        if (isSatisfied) {
+            el.className = 'req-item satisfied';
+            if (icon) icon.setAttribute('data-lucide', 'check-circle-2');
+        } else {
+            el.className = 'req-item unsatisfied';
+            if (icon) icon.setAttribute('data-lucide', 'circle');
+        }
+    }
+
+    function checkPasswordRequirements(pwd) {
+        const hasLength = pwd.length >= 8;
+        const hasDigit = /\d/.test(pwd);
+        const hasSymbol = /[!@#$%^&*(),.?":{}|<>\-_+=\[\]\\/`~;']/.test(pwd);
+        const hasUpper = /[A-Z]/.test(pwd);
+        const hasLower = /[a-z]/.test(pwd);
+        const hasBothCases = hasUpper && hasLower;
+
+        updateRequirement(reqLength, hasLength);
+        updateRequirement(reqDigit, hasDigit);
+        updateRequirement(reqSymbol, hasSymbol);
+        updateRequirement(reqCase, hasBothCases);
+
+        if (window.lucide) lucide.createIcons();
+        return hasLength && hasDigit && hasSymbol && hasBothCases;
+    }
+
+    passwordInput.addEventListener('input', () => {
+        checkPasswordRequirements(passwordInput.value);
+        if (clientAlert.style.display === 'flex') {
+            clientAlert.style.display = 'none';
+        }
+    });
+
+    signupForm.addEventListener('submit', (e) => {
+        const isValid = checkPasswordRequirements(passwordInput.value);
+        if (!isValid) {
+            e.preventDefault();
+            clientAlert.innerHTML = '<i data-lucide="alert-circle" class="btn-icon"></i> <span>Password does not meet all the required security conditions.</span>';
+            clientAlert.style.display = 'flex';
+            if (window.lucide) lucide.createIcons();
+            passwordInput.focus();
+        }
+    });
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>
 </body>
 </html>

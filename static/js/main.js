@@ -60,7 +60,7 @@ const CustomSpeechEngine = {
     }
 };
 
-// Formats HH:MM:SS time strings into a highly natural spoken format (e.g. 16:30:00 -> 4:30 PM, 08:00:00 -> 8 AM)
+// Formats HH:MM:SS time strings into natural spoken format
 function formatTimeForSpeech(timeStr) {
     if (!timeStr) return 'N/A';
     const parts = timeStr.split(':');
@@ -69,7 +69,7 @@ function formatTimeForSpeech(timeStr) {
         const minute = parts[1];
         const ampm = hour >= 12 ? 'PM' : 'AM';
         hour = hour % 12;
-        hour = hour ? hour : 12; // 0 hour becomes 12
+        hour = hour ? hour : 12;
         if (minute === '00') {
             return `${hour} ${ampm}`;
         }
@@ -82,11 +82,41 @@ function speakText(textMessage) {
     CustomSpeechEngine.speak(textMessage);
 }
 
+// Helpers for badges and presentation
+function getTransportBadge(type) {
+    const t = (type || 'Transit').trim().toLowerCase();
+    if (t.includes('flight') || t.includes('plane') || t.includes('air')) {
+        return `<span class="transport-badge badge-flight"><i data-lucide="plane" class="btn-icon"></i> Flight</span>`;
+    } else if (t.includes('train') || t.includes('rail')) {
+        return `<span class="transport-badge badge-train"><i data-lucide="train" class="btn-icon"></i> Train</span>`;
+    } else if (t.includes('bus')) {
+        return `<span class="transport-badge badge-bus"><i data-lucide="bus" class="btn-icon"></i> Bus</span>`;
+    }
+    return `<span class="transport-badge badge-train"><i data-lucide="navigation" class="btn-icon"></i> ${type || 'Service'}</span>`;
+}
+
+function getSeatsBadge(seats) {
+    const num = parseInt(seats, 10);
+    if (isNaN(num) || num <= 0) {
+        return `<span class="seats-pill seats-soldout"><i data-lucide="x-circle" class="btn-icon" style="width:14px;height:14px;"></i> Sold Out</span>`;
+    } else if (num < 10) {
+        return `<span class="seats-pill seats-low"><i data-lucide="alert-circle" class="btn-icon" style="width:14px;height:14px;"></i> ${num} seats left</span>`;
+    }
+    return `<span class="seats-pill seats-available"><i data-lucide="check-circle" class="btn-icon" style="width:14px;height:14px;"></i> ${num} seats</span>`;
+}
+
 // Core routine to send text query to Flask and display results
 async function performQuerySearch(queryString) {
     transcriptOutput.textContent = `"${queryString}"`;
     transcriptOutput.classList.remove('placeholder-text');
     
+    const submitBtn = document.getElementById('submit-btn');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> Searching...';
+    }
+
     try {
         const response = await fetch('/search', {
             method: 'POST',
@@ -101,17 +131,29 @@ async function performQuerySearch(queryString) {
 
     } catch (error) {
         console.error("Transmission Error:", error);
+        const errorMsg = "Network error: Could not reach transport server. Please check your connection.";
         resultsOutput.innerHTML = `<div class="schedule-card error"><i data-lucide="alert-triangle" class="btn-icon" style="margin-right: 6px; color: var(--error-color);"></i> ${errorMsg}</div>`;
         resultsSection.classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
         speakText(errorMsg); 
-    } 
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
 }
 
 // Core routine to send offline recorded audio blob to Flask for Whisper transcription
 async function performAudioSearch(audioBlob) {
-    transcriptOutput.textContent = "Transcribing audio locally (offline)...";
+    transcriptOutput.textContent = "Transcribing audio offline (Whisper)...";
     transcriptOutput.classList.add('placeholder-text');
     
+    micBtn.classList.remove('recording');
+    micBtn.classList.add('processing');
+    micStatus.textContent = "Processing...";
+
     try {
         const formData = new FormData();
         formData.append('audio', audioBlob, 'recording.webm');
@@ -134,10 +176,16 @@ async function performAudioSearch(audioBlob) {
 
     } catch (error) {
         console.error("Audio Processing Error:", error);
+        const errorMsg = "Audio error: Could not transcribe recording. Please try speaking again.";
         resultsOutput.innerHTML = `<div class="schedule-card error"><i data-lucide="alert-triangle" class="btn-icon" style="margin-right: 6px;"></i> ${errorMsg}</div>`;
         resultsSection.classList.remove('hidden');
+        if (window.lucide) window.lucide.createIcons();
         speakText(errorMsg); 
-    } 
+    } finally {
+        micBtn.classList.remove('processing');
+        micStatus.textContent = "Click to Speak";
+        if (window.lucide) window.lucide.createIcons();
+    }
 }
 
 // Initialize microphone and MediaRecorder
@@ -156,16 +204,15 @@ async function initMicrophone() {
             isRecording = true; 
             micBtn.classList.add('recording');
             micStatus.textContent = "Click to Stop";
-            transcriptOutput.textContent = "Recording voice signal offline...";
+            transcriptOutput.textContent = "Listening to voice input...";
             resultsSection.classList.add('hidden');
         };
         
         mediaRecorder.onstop = async () => {
             isRecording = false; 
             micBtn.classList.remove('recording');
-            micStatus.textContent = "Click to Speak";
             
-            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
             audioChunks = [];
             
             await performAudioSearch(audioBlob);
@@ -173,7 +220,7 @@ async function initMicrophone() {
         return true;
     } catch (err) {
         console.error("Microphone access failed:", err);
-        const errorMsg = "Microphone access blocked. Please check browser and system permissions.";
+        const errorMsg = "Microphone access blocked. Please check browser permissions.";
         transcriptOutput.textContent = errorMsg;
         transcriptOutput.classList.add('placeholder-text');
         resultsOutput.innerHTML = `<div class="schedule-card error"><i data-lucide="alert-triangle" class="btn-icon" style="margin-right: 6px;"></i> ${errorMsg}</div>`;
@@ -186,6 +233,8 @@ async function initMicrophone() {
 
 // UI Trigger: Click to Toggle Recording
 micBtn.addEventListener('click', async () => {
+    if (micBtn.classList.contains('processing')) return;
+
     if (CustomSpeechEngine.speaking) {
         CustomSpeechEngine.cancel();
     }
@@ -215,7 +264,6 @@ textInputForm.addEventListener('submit', async (event) => {
             mediaRecorder.stop();
         }
         await performQuerySearch(typedQuery);
-        manualQueryInput.value = ""; 
     }
 });
 
@@ -229,6 +277,10 @@ function displayResults(data, isRestore=false) {
     if (data.error) {
         resultsOutput.innerHTML = `<div class="schedule-card error"><i data-lucide="alert-triangle" class="btn-icon" style="margin-right: 6px;"></i> ${data.error}</div>`;
         textToSpeak = data.error;
+        if (window.lucide) window.lucide.createIcons();
+        if (!isRestore && textToSpeak) {
+            speakText(textToSpeak);
+        }
         return;
     }
 
@@ -239,25 +291,48 @@ function displayResults(data, isRestore=false) {
             const card = document.createElement('div');
             card.className = 'schedule-card';
             
-            let pathHtml = `<strong style="color: var(--primary-color); font-size: 1.05rem;"><i data-lucide="route" class="btn-icon" style="margin-right: 6px;"></i> Transit Route Option ${pathIndex + 1}:</strong><br>`;
+            let pathHtml = `
+                <div style="margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                    <div style="font-weight: 800; font-family: var(--font-heading); color: var(--primary-color); font-size: 1.1rem; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="route" class="btn-icon"></i> Transit Route Option ${pathIndex + 1}
+                    </div>
+                    <span style="font-size: 0.85rem; color: var(--text-secondary); background: rgba(99,102,241,0.08); padding: 0.25rem 0.6rem; border-radius: 6px;">
+                        ${path.legs.length} Connecting Leg${path.legs.length > 1 ? 's' : ''}
+                    </span>
+                </div>
+            `;
             
             path.legs.forEach((leg, legIndex) => {
                 const schedule = leg.schedules[0];
-                const transportType = schedule.transport_type || 'service';
+                const transportType = schedule.transport_type || 'Service';
                 const departureTime = schedule.departure_time || 'N/A';
                 const arrivalTime = schedule.arrival_time || 'N/A';
+                const seats = schedule.available_seats || 0;
+                const isLegSoldOut = seats <= 0;
                 
                 pathHtml += `
-                    <div style="margin-left: 10px; border-left: 2px solid var(--primary-color); padding-left: 12px; margin-top: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                        <div>
-                            <strong>Leg ${legIndex + 1}:</strong> ${leg.source} <i data-lucide="arrow-right" class="btn-icon" style="margin: 0 4px; width: 14px; height: 14px; vertical-align: middle;"></i> ${leg.destination} <br>
-                            <strong>Service:</strong> ${transportType} | 
-                            <strong>Departure:</strong> ${departureTime} | 
-                            <strong>Arrival:</strong> ${arrivalTime} |
-                            <strong>Seats:</strong> ${schedule.available_seats || 0}
+                    <div class="transit-leg-box">
+                        <div class="transit-leg-info">
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span style="background: var(--primary-color); color: white; border-radius: 6px; padding: 2px 7px; font-size: 0.75rem; font-weight: 800;">
+                                    LEG ${legIndex + 1}
+                                </span>
+                                ${getTransportBadge(transportType)}
+                                <strong style="font-size: 1rem; color: var(--text-primary);">${leg.source}</strong> 
+                                <i data-lucide="arrow-right" class="btn-icon" style="width: 14px; height: 14px; margin: 0 2px;"></i> 
+                                <strong style="font-size: 1rem; color: var(--text-primary);">${leg.destination}</strong>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; font-size: 0.88rem; color: var(--text-secondary); margin-top: 4px;">
+                                <span><strong>Dep:</strong> ${departureTime}</span>
+                                <span><strong>Arr:</strong> ${arrivalTime}</span>
+                                ${getSeatsBadge(seats)}
+                            </div>
                         </div>
                         <div>
-                            <a href="/book/${schedule.schedule_id}" class="read-all-button" style="text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.85rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block; white-space: nowrap;"><i data-lucide="ticket" class="btn-icon" style="margin-right: 4px;"></i> Book Leg</a>
+                            ${isLegSoldOut ? 
+                                `<button class="btn-card-action disabled" disabled><i data-lucide="slash" class="btn-icon"></i> Sold Out</button>` : 
+                                `<a href="/book/${schedule.schedule_id}" class="btn-card-action" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;"><i data-lucide="ticket" class="btn-icon"></i> Book Leg</a>`
+                            }
                         </div>
                     </div>
                 `;
@@ -265,8 +340,10 @@ function displayResults(data, isRestore=false) {
             
             const scheduleIds = path.legs.map(leg => leg.schedules[0].schedule_id).join(',');
             pathHtml += `
-                <div style="text-align: right; margin-top: 1.25rem; border-top: 1px solid rgba(99,102,241,0.1); padding-top: 1rem;">
-                    <a href="/book-transit?schedules=${scheduleIds}" class="read-all-button" style="text-decoration: none; padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block;"><i data-lucide="ticket" class="btn-icon" style="margin-right: 6px;"></i> Book Entire Journey</a>
+                <div style="text-align: right; margin-top: 1.25rem; border-top: 1px solid rgba(99,102,241,0.12); padding-top: 1rem; display: flex; justify-content: flex-end;">
+                    <a href="/book-transit?schedules=${scheduleIds}" class="btn-primary" style="padding: 0.65rem 1.4rem; font-size: 0.95rem;">
+                        <i data-lucide="layers" class="btn-icon"></i> Book Entire Journey
+                    </a>
                 </div>
             `;
             
@@ -274,7 +351,7 @@ function displayResults(data, isRestore=false) {
             resultsOutput.appendChild(card);
         });
 
-        // Compile verbal summary for transit path options
+        // Verbal summary for transit path options
         let verbalSummary = `No direct route found from ${data.origin} to ${data.destination}. However, you can travel `;
         const firstPath = data.transit_paths[0];
         firstPath.legs.forEach((leg, index) => {
@@ -298,25 +375,40 @@ function displayResults(data, isRestore=false) {
             
             const transportType = schedule.transport_type || 'Train';
             const departureTime = schedule.departure_time || 'N/A';
+            const arrivalTime = schedule.arrival_time || '';
+            const seats = schedule.available_seats !== undefined ? schedule.available_seats : 0;
+            const isSoldOut = seats <= 0;
             
             card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                    <div>
-                        <strong>Route ID:</strong> ${schedule.route_id} | 
-                        <strong>Service:</strong> ${transportType} <br>
-                        <strong>Path:</strong> ${data.origin} <i data-lucide="arrow-right" class="btn-icon" style="margin: 0 4px; width: 14px; height: 14px; vertical-align: middle;"></i> ${data.destination} <br>
-                        <strong>Departure:</strong> ${departureTime} | 
-                        <strong>Seats:</strong> ${schedule.available_seats || 0}
+                <div class="schedule-card-layout">
+                    <div class="schedule-info-block">
+                        <div class="schedule-title-row">
+                            ${getTransportBadge(transportType)}
+                            <span class="schedule-route-text">
+                                ${data.origin} 
+                                <i data-lucide="arrow-right" class="btn-icon" style="margin: 0 4px; width: 14px; height: 14px;"></i> 
+                                ${data.destination}
+                            </span>
+                        </div>
+                        <div class="schedule-meta-row">
+                            <span><strong>Departure:</strong> ${departureTime}</span>
+                            ${arrivalTime ? `<span><strong>Arrival:</strong> ${arrivalTime}</span>` : ''}
+                            <span><strong>Route:</strong> #${schedule.route_id}</span>
+                            ${getSeatsBadge(seats)}
+                        </div>
                     </div>
-                    <div>
-                        <a href="/book/${schedule.schedule_id}" class="read-all-button" style="text-decoration: none; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9rem; font-weight: bold; background: linear-gradient(135deg, var(--primary-color) 0%, #4f46e5 100%); display: inline-block; white-space: nowrap;"><i data-lucide="ticket" class="btn-icon" style="margin-right: 6px;"></i> Book Ticket</a>
+                    <div class="schedule-action-block">
+                        ${isSoldOut ? 
+                            `<button class="btn-card-action disabled" disabled><i data-lucide="slash" class="btn-icon"></i> Sold Out</button>` : 
+                            `<a href="/book/${schedule.schedule_id}" class="btn-card-action"><i data-lucide="ticket" class="btn-icon"></i> Book Ticket</a>`
+                        }
                     </div>
                 </div>
             `;
             resultsOutput.appendChild(card);
         });
         
-        // Build concise voice output to keep speech short and natural
+        // Concise voice output
         if (data.schedules.length === 1) {
             verbalSummary += `It is a ${data.schedules[0].transport_type || 'service'} departing at ${formatTimeForSpeech(data.schedules[0].departure_time)}.`;
         } else {
@@ -330,7 +422,14 @@ function displayResults(data, isRestore=false) {
         textToSpeak = verbalSummary;
         
     } else {
-        resultsOutput.innerHTML = `<div class="schedule-card"><i data-lucide="info" class="btn-icon" style="margin-right: 6px; color: var(--primary-color);"></i> No routes found.</div>`;
+        resultsOutput.innerHTML = `
+            <div class="schedule-card" style="text-align: center; padding: 2rem;">
+                <div style="color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1.05rem;">
+                    <i data-lucide="info" class="btn-icon" style="color: var(--primary-color); width: 22px; height: 22px;"></i> 
+                    No scheduled routes found for this search.
+                </div>
+            </div>
+        `;
         if (data.origin && data.destination) {
             textToSpeak = `No routes found from ${data.origin} to ${data.destination}.`;
         } else {
@@ -358,7 +457,6 @@ function displayResults(data, isRestore=false) {
 
 // State restoration logic
 function restoreSearchState() {
-    // If the user manually reloads the page, wipe the saved state so they get a fresh search interface
     const navEntries = performance.getEntriesByType("navigation");
     if (navEntries.length > 0 && navEntries[0].type === "reload") {
         sessionStorage.removeItem('lastSearchResults');
@@ -383,7 +481,7 @@ function restoreSearchState() {
 // Restore results from sessionStorage on page load
 window.addEventListener('DOMContentLoaded', restoreSearchState);
 
-// Also restore on pageshow to handle browser back-button caching
+// Restore on pageshow to handle browser back-button caching
 window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
         restoreSearchState();

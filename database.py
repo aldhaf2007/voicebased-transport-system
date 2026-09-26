@@ -1,6 +1,7 @@
 import mysql.connector
 from neo4j import GraphDatabase
 import os
+import re
 from urllib.parse import urlparse, unquote
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -633,6 +634,103 @@ def delete_schedule(schedule_id):
 # ==========================================
 # 5. TICKET BOOKING MANAGEMENT
 # ==========================================
+def init_transport_tables():
+    """Creates Transport_Details and Schedules tables in MySQL if not present, and seeds base transport modes and initial schedules if empty."""
+    mysql_conn = get_mysql_connection()
+    if not mysql_conn:
+        return
+    cursor = mysql_conn.cursor()
+    try:
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS Transport_Details (
+            transport_id INT PRIMARY KEY,
+            type VARCHAR(50) NOT NULL
+        );
+        """)
+        cursor.execute("""
+        INSERT IGNORE INTO Transport_Details (transport_id, type)
+        VALUES (1, 'Flight'), (2, 'Train'), (3, 'Bus');
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS Schedules (
+            schedule_id INT PRIMARY KEY AUTO_INCREMENT,
+            route_id INT NOT NULL,
+            transport_id INT NOT NULL,
+            departure_time TIME NOT NULL,
+            arrival_time TIME NOT NULL,
+            available_seats INT NOT NULL,
+            FOREIGN KEY (transport_id) REFERENCES Transport_Details(transport_id)
+        );
+        """)
+        mysql_conn.commit()
+
+        # Seed initial schedules if empty
+        cursor.execute("SELECT COUNT(*) FROM Schedules")
+        count = cursor.fetchone()[0]
+        if count == 0:
+            print("🌱 Seeding initial schedules into MySQL Schedules table...")
+            initial_schedules = [
+                (1, 2, '06:00:00', '14:30:00', 50),
+                (1, 1, '09:00:00', '11:15:00', 30),
+                (2, 2, '16:00:00', '23:45:00', 45),
+                (2, 1, '18:30:00', '20:45:00', 25),
+                (3, 3, '07:00:00', '10:30:00', 40),
+                (3, 2, '08:15:00', '11:45:00', 60),
+                (4, 3, '17:00:00', '20:30:00', 40),
+                (5, 2, '12:00:00', '22:00:00', 50),
+                (5, 3, '19:30:00', '08:00:00', 35),
+                (6, 2, '07:30:00', '17:30:00', 50),
+                (7, 1, '06:15:00', '09:00:00', 40),
+                (7, 2, '20:00:00', '06:30:00', 50),
+                (8, 1, '10:00:00', '12:45:00', 40),
+            ]
+            cursor.executemany(
+                "INSERT INTO Schedules (route_id, transport_id, departure_time, arrival_time, available_seats) VALUES (%s, %s, %s, %s, %s)",
+                initial_schedules
+            )
+            mysql_conn.commit()
+            print("✅ Default schedules populated in MySQL.")
+    except Exception as e:
+        print(f"❌ Error creating Transport_Details or Schedules table: {e}")
+    finally:
+        cursor.close()
+        mysql_conn.close()
+
+
+def init_neo4j_graph():
+    """Seeds default station nodes and route relationships into Neo4j if graph is empty."""
+    neo4j_driver = get_neo4j_driver()
+    if not neo4j_driver:
+        return
+    try:
+        with neo4j_driver.session() as session:
+            result = session.run("MATCH (s:Station) RETURN count(s) AS count")
+            record = result.single()
+            if record and record["count"] == 0:
+                print("🌱 Seeding initial stations and routes into Neo4j graph...")
+                cypher_seed = """
+                MERGE (delhi:Station {name: 'New Delhi'})
+                MERGE (mumbai:Station {name: 'Mumbai'})
+                MERGE (pune:Station {name: 'Pune'})
+                MERGE (bangalore:Station {name: 'Bangalore'})
+                WITH delhi, mumbai, pune, bangalore
+                MERGE (delhi)-[:CONNECTS_TO {route_id: 1}]->(mumbai)
+                MERGE (mumbai)-[:CONNECTS_TO {route_id: 2}]->(delhi)
+                MERGE (mumbai)-[:CONNECTS_TO {route_id: 3}]->(pune)
+                MERGE (pune)-[:CONNECTS_TO {route_id: 4}]->(mumbai)
+                MERGE (pune)-[:CONNECTS_TO {route_id: 5}]->(bangalore)
+                MERGE (bangalore)-[:CONNECTS_TO {route_id: 6}]->(pune)
+                MERGE (delhi)-[:CONNECTS_TO {route_id: 7}]->(bangalore)
+                MERGE (bangalore)-[:CONNECTS_TO {route_id: 8}]->(delhi)
+                """
+                session.run(cypher_seed)
+                print("✅ Default Neo4j stations and route topology populated.")
+    except Exception as e:
+        print(f"❌ Error initializing Neo4j graph: {e}")
+    finally:
+        neo4j_driver.close()
+
+
 def init_bookings_table():
     """Creates the Bookings table in MySQL if it does not exist, and ensures travel_date exists."""
     mysql_conn = get_mysql_connection()
@@ -924,14 +1022,40 @@ def create_transit_bookings(schedule_ids, passenger_name, passenger_email, seats
         mysql_conn.close()
 
 
-# Automatically initialize the bookings table on module load
+# Automatically initialize database schema and seed data on module load
+init_transport_tables()
 init_bookings_table()
 init_users_and_update_bookings()
+init_neo4j_graph()
 
 
 # ==========================================
 # 6. USER AUTHENTICATION & MANAGEMENT
 # ==========================================
+def validate_password_strength(password):
+    """
+    Validates that a password satisfies complexity requirements:
+    - Minimum 8 characters in length
+    - At least one numeric digit (0-9)
+    - At least one special symbol / character (!@#$%^&*...)
+    - At least one uppercase letter (A-Z)
+    - At least one lowercase letter (a-z)
+    """
+    if not password:
+        return False, "Password cannot be empty."
+    if len(password) < 8:
+        return False, "Password must be at least 8 characters long."
+    if not re.search(r"\d", password):
+        return False, "Password must contain at least one digit (0-9)."
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>\-_+=\[\]\\/`~;']", password):
+        return False, "Password must contain at least one special symbol (e.g. !@#$%^&*)."
+    if not re.search(r"[A-Z]", password):
+        return False, "Password must contain at least one uppercase letter (A-Z)."
+    if not re.search(r"[a-z]", password):
+        return False, "Password must contain at least one lowercase letter (a-z)."
+    return True, ""
+
+
 def register_user(username, email, password):
     """Registers a new user in the database."""
     username = username.strip()
@@ -939,6 +1063,10 @@ def register_user(username, email, password):
     password = password.strip()
     if not username or not email or not password:
         return False, "All fields are required."
+
+    is_valid, err_msg = validate_password_strength(password)
+    if not is_valid:
+        return False, err_msg
 
     mysql_conn = get_mysql_connection()
     if not mysql_conn:

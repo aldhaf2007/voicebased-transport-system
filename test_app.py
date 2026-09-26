@@ -380,7 +380,7 @@ class TestVoiceTransportSystem(unittest.TestCase):
         response_post = self.app.post("/signup", data={
             "username": "newuser",
             "email": "newuser@example.com",
-            "password": "securepassword"
+            "password": "SecurePass123!"
         })
         self.assertEqual(response_post.status_code, 302)
 
@@ -388,7 +388,7 @@ class TestVoiceTransportSystem(unittest.TestCase):
         response_json = self.app.post("/signup", json={
             "username": "newuser",
             "email": "newuser@example.com",
-            "password": "securepassword"
+            "password": "SecurePass123!"
         })
         self.assertEqual(response_json.status_code, 200)
         self.assertTrue(response_json.get_json()["success"])
@@ -471,6 +471,57 @@ class TestVoiceTransportSystem(unittest.TestCase):
         response_auth = self.app.post("/cancel_booking/1")
         self.assertEqual(response_auth.status_code, 200)
         self.assertTrue(response_auth.get_json()["success"])
+
+    def test_password_validation_rules(self):
+        """Test password strength validation requirements."""
+        from database import validate_password_strength
+
+        # Empty password
+        valid, msg = validate_password_strength("")
+        self.assertFalse(valid)
+        self.assertIn("empty", msg.lower())
+
+        # Too short (< 8 chars)
+        valid, msg = validate_password_strength("Short1!")
+        self.assertFalse(valid)
+        self.assertIn("8 characters", msg.lower())
+
+        # Missing digit
+        valid, msg = validate_password_strength("NoDigitsHere!")
+        self.assertFalse(valid)
+        self.assertIn("digit", msg.lower())
+
+        # Missing special symbol
+        valid, msg = validate_password_strength("NoSymbols123")
+        self.assertFalse(valid)
+        self.assertIn("symbol", msg.lower())
+
+        # Missing uppercase
+        valid, msg = validate_password_strength("nouppercase123!")
+        self.assertFalse(valid)
+        self.assertIn("uppercase", msg.lower())
+
+        # Missing lowercase
+        valid, msg = validate_password_strength("NOLOWERCASE123!")
+        self.assertFalse(valid)
+        self.assertIn("lowercase", msg.lower())
+
+        # Valid strong password
+        valid, msg = validate_password_strength("StrongPass99#")
+        self.assertTrue(valid)
+        self.assertEqual(msg, "")
+
+    def test_signup_weak_password_rejection(self):
+        """Test signup rejects weak passwords with 400 status code."""
+        response = self.app.post("/signup", json={
+            "username": "weakuser",
+            "email": "weakuser@example.com",
+            "password": "weak"
+        })
+        self.assertEqual(response.status_code, 400)
+        data = response.get_json()
+        self.assertFalse(data.get("success", True))
+        self.assertIn("characters", data.get("message", "").lower())
 
 if __name__ == "__main__":
     unittest.main()

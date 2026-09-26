@@ -41,6 +41,7 @@ from database import (
     create_booking,
     create_transit_bookings,
     register_user,
+    validate_password_strength,
     authenticate_user,
     get_all_users,
     get_all_bookings,
@@ -936,5 +937,22 @@ def perform_transit_booking():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    import socket
+
+    def find_available_port(default_port=5000):
+        if "PORT" in os.environ:
+            return int(os.environ["PORT"])
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(("127.0.0.1", default_port)) != 0:
+                return default_port
+        print(f"⚠️ Notice: Default port {default_port} is already in use.")
+        for p in range(default_port + 1, default_port + 20):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex(("127.0.0.1", p)) != 0:
+                    print(f"👉 Switching to available port {p}...")
+                    return p
+        return default_port
+
+    port = find_available_port(5000)
+    print(f"🚀 Starting Voice Transport System on http://localhost:{port}")
     app.run(host="0.0.0.0", port=port)

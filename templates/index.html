@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#007bff">
+    <meta name="theme-color" content="#4f46e5">
     <meta name="description" content="Voice-based transport and route enquiry system">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,77 +25,76 @@
     <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
-
-
-
-    <div class="dashboard-container">
-        <header>
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; flex-wrap: wrap;">
+<div class="dashboard-container">
+    <header>
+        <div class="top-nav">
+            <div class="brand-wrapper">
                 <h1><i data-lucide="mic" class="header-icon"></i> Voice Transport Gateway</h1>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    {% if session.get('user_id') %}
-                        <span style="color: var(--text-secondary); font-size: 0.95rem;">Hi, <strong style="color: var(--text-primary); font-weight: 700;">{{ session.get('username') }}</strong></span>
-                        <a href="/my_bookings" class="secondary-btn"><i data-lucide="ticket" class="btn-icon" style="margin-right: 6px;"></i> My Bookings</a>
-                        <a href="/logout" class="secondary-btn" style="color: var(--accent-color); border-color: var(--accent-color);"><i data-lucide="log-out" class="btn-icon" style="margin-right: 6px;"></i> Sign Out</a>
-                    {% else %}
-                        <a href="/login" class="secondary-btn"><i data-lucide="log-in" class="btn-icon" style="margin-right: 6px;"></i> Sign In</a>
-                        <a href="/signup" class="secondary-btn" style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); color: white; border: none; border-top: 1px solid rgba(255,255,255,0.3); box-shadow: 0 5px 15px rgba(99,102,241,0.4);"><i data-lucide="user-plus" class="btn-icon" style="margin-right: 6px;"></i> Sign Up</a>
-                    {% endif %}
-                </div>
             </div>
-            <p style="margin-top: 0.75rem;">Click the microphone and ask for route schedules (e.g., "Show trains from New Delhi to Mumbai")</p>
-        </header>
-
-        <main class="interaction-panel">
-            <div class="mic-button-wrapper">
-                <button id="mic-btn" class="mic-button">
-                    <i data-lucide="mic" class="mic-icon"></i>
-                    <span id="mic-status">Click to Speak</span>
-                </button>
+            <div class="nav-actions">
+                {% if session.get('user_id') %}
+                    <span class="user-badge">Hi, <strong>{{ session.get('username') }}</strong></span>
+                    <a href="/my_bookings" class="btn-secondary"><i data-lucide="ticket" class="btn-icon"></i> My Bookings</a>
+                    <a href="/logout" class="btn-secondary btn-danger-outline"><i data-lucide="log-out" class="btn-icon"></i> Sign Out</a>
+                {% else %}
+                    <a href="/login" class="btn-secondary"><i data-lucide="log-in" class="btn-icon"></i> Sign In</a>
+                    <a href="/signup" class="btn-primary" style="padding: 0.65rem 1.15rem; font-size: 0.92rem;"><i data-lucide="user-plus" class="btn-icon"></i> Sign Up</a>
+                {% endif %}
             </div>
+        </div>
+        <p class="subtitle">Click the microphone to speak your route query or type below (e.g., <em>"Show trains from New Delhi to Mumbai"</em>)</p>
+    </header>
 
-            <div class="divider">
-                <span>OR</span>
-            </div>
+    <main class="interaction-panel">
+        <div class="mic-button-wrapper">
+            <button id="mic-btn" class="mic-button" title="Click to speak">
+                <i data-lucide="mic" class="mic-icon"></i>
+                <span id="mic-status">Click to Speak</span>
+            </button>
+        </div>
 
-            <form id="text-input-form" class="manual-input-form">
-                <input type="text" id="manual-query" placeholder="Type query (e.g., 'New Delhi to Mumbai')..." autocomplete="off" required>
-                <button type="submit" id="submit-btn"><i data-lucide="search" class="btn-icon" style="margin-right: 6px;"></i> Search</button>
-            </form>
+        <div class="divider">
+            <span>OR TYPE QUERY</span>
+        </div>
 
-            <div class="transcript-box">
-                <h3>Live Transcript / Query Input:</h3>
-                <p id="speech-transcript" class="placeholder-text">Your voice payload string or typed query will appear here...</p>
-            </div>
-        </main>
+        <form id="text-input-form" class="manual-input-form">
+            <input type="text" id="manual-query" placeholder="Type route (e.g., 'New Delhi to Mumbai')..." autocomplete="off" required>
+            <button type="submit" id="submit-btn"><i data-lucide="search" class="btn-icon"></i> Search</button>
+        </form>
 
-        <section id="results-section" class="results-container hidden">
-            <div class="results-header">
-                <h2><i data-lucide="route" class="title-icon"></i> Resolved Route Schedules</h2>
-                <button id="read-all-btn" class="read-all-button" title="Read all schedules verbally"><i data-lucide="volume-2" class="btn-icon" style="margin-right: 6px;"></i> Read All</button>
-            </div>
-            <div id="results-output"></div>
-        </section>
-    </div>
+        <div class="transcript-box">
+            <h3>Live Transcript / Query Status:</h3>
+            <p id="speech-transcript" class="placeholder-text">Your voice payload string or typed query will appear here...</p>
+        </div>
+    </main>
 
-    <div class="scroll-buttons">
-        <button id="scroll-up-btn" class="scroll-btn" title="Scroll to Top"><i data-lucide="arrow-up"></i></button>
-        <button id="scroll-down-btn" class="scroll-btn" title="Scroll to Bottom"><i data-lucide="arrow-down"></i></button>
-    </div>
+    <section id="results-section" class="results-container hidden">
+        <div class="results-header">
+            <h2><i data-lucide="route" class="title-icon"></i> Resolved Route Schedules</h2>
+            <button id="read-all-btn" class="btn-secondary" title="Read all schedules verbally"><i data-lucide="volume-2" class="btn-icon"></i> Read All</button>
+        </div>
+        <div id="results-output"></div>
+    </section>
+</div>
 
-    <audio id="tts-audio" style="display: none;"></audio>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script>
-        document.getElementById('scroll-up-btn').addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-        document.getElementById('scroll-down-btn').addEventListener('click', () => {
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        });
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    </script>
+<div class="scroll-buttons">
+    <button id="scroll-up-btn" class="scroll-btn" title="Scroll to Top"><i data-lucide="arrow-up"></i></button>
+    <button id="scroll-down-btn" class="scroll-btn" title="Scroll to Bottom"><i data-lucide="arrow-down"></i></button>
+</div>
+
+<audio id="tts-audio" style="display: none;"></audio>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+    document.getElementById('scroll-up-btn').addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    document.getElementById('scroll-down-btn').addEventListener('click', () => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>
 
 </body>
 </html>

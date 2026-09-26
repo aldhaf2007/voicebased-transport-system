@@ -3,64 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#007bff">
+    <meta name="theme-color" content="#4f46e5">
     <title>My Bookings - Voice Transport Gateway</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🎙️</text></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='50' font-size='80' text-anchor='middle' dominant-baseline='middle'>🎫</text></svg>">
     <!-- Lucide Icon Library -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .dashboard-container {
-            max-width: 1000px;
-            margin: 2rem auto;
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--card-border);
-            border-radius: 24px;
-            padding: 2.5rem;
-            box-shadow: 0 20px 50px -10px rgba(99, 102, 241, 0.12);
-        }
-
-        .table-wrapper {
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid rgba(99, 102, 241, 0.1);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            background: #f1f5f9;
-            color: var(--primary-color);
-            padding: 1rem;
-            text-align: left;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 2px solid rgba(99, 102, 241, 0.15);
-        }
-
-        td {
-            padding: 1rem;
-            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-            color: var(--text-primary);
-            font-size: 0.95rem;
-            vertical-align: middle;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover {
-            background: rgba(99, 102, 241, 0.03);
-        }
-    </style>
 </head>
 <body>
 
@@ -72,83 +20,136 @@
     <div class="bg-logo" style="top: 20%; left: 60%; transform: rotate(15deg);"><i data-lucide="ship"></i></div>
 </div>
 
-
-
-
-    <div class="dashboard-container">
-        <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 1.5rem; margin-bottom: 2rem;">
-            <h1><i data-lucide="ticket" class="header-icon"></i> My Bookings</h1>
-            <a href="/" class="secondary-btn"><i data-lucide="arrow-left" class="btn-icon" style="margin-right: 6px;"></i> Back to Home</a>
-        </header>
-
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Booking ID</th>
-                        <th>Passenger</th>
-                        <th>Route</th>
-                        <th>Travel Date</th>
-                        <th>Seats</th>
-                        <th>Booking Time</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for b in bookings %}
-                        <tr>
-                            <td><strong>#{{ b.booking_id }}</strong></td>
-                            <td>{{ b.passenger_name }}<br><small style="color: var(--text-secondary);">{{ b.passenger_email }}</small></td>
-                            <td>{{ b.source }} ➔ {{ b.destination }} <br><small style="color: var(--accent-color);">{{ b.transport_type }} | Dep: {{ b.departure_time }}</small></td>
-                            <td>{{ b.travel_date }}</td>
-                            <td>{{ b.seats_booked }}</td>
-                            <td>{{ b.booking_time }}</td>
-                            <td>
-                                {% if b.status == 'CANCELLED' %}
-                                    <span style="color: var(--error-color); font-weight: bold;"><i data-lucide="x-circle" class="btn-icon" style="margin-right: 4px; width: 14px; height: 14px; vertical-align: middle;"></i> Cancelled</span>
-                                {% else %}
-                                    <button onclick="cancelBooking({{ b.booking_id }})" class="secondary-btn" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); color: var(--error-color); padding: 0.5rem 1rem; font-size: 0.8rem;"><i data-lucide="trash-2" class="btn-icon" style="margin-right: 4px; width: 12px; height: 12px; vertical-align: middle;"></i> Cancel</button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 2rem;">You have no active bookings.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="dashboard-container wide-container">
+    <header>
+        <div class="top-nav">
+            <h1 style="font-size: 2.1rem;"><i data-lucide="ticket" class="header-icon"></i> My Bookings</h1>
+            <div class="nav-actions">
+                <a href="/" class="btn-secondary"><i data-lucide="arrow-left" class="btn-icon"></i> Back to Home</a>
+                <a href="/logout" class="btn-secondary btn-danger-outline"><i data-lucide="log-out" class="btn-icon"></i> Sign Out</a>
+            </div>
         </div>
-    </div>
+        <p class="subtitle">Review your active travel reservations or cancel upcoming trips.</p>
+    </header>
 
-    <script>
-        async function cancelBooking(bookingId) {
-            if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
-                return;
-            }
-            try {
-                                const response = await fetch(`/cancel_booking/${bookingId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    alert('Booking cancelled successfully.');
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.message);
+    <div class="alert-box" id="page-alert"></div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Passenger</th>
+                    <th>Route Pathway</th>
+                    <th>Travel Date</th>
+                    <th>Seats</th>
+                    <th>Status</th>
+                    <th>Booked At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                    <tr>
+                        <td>
+                            <strong style="color: var(--primary-color);">#{{ b.booking_id }}</strong>
+                        </td>
+                        <td>
+                            <div style="font-weight: 600;">{{ b.passenger_name }}</div>
+                            <small style="color: var(--text-secondary);">{{ b.passenger_email }}</small>
+                        </td>
+                        <td>
+                            <div style="font-weight: 700;">{{ b.source }} ➔ {{ b.destination }}</div>
+                            <div style="margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+                                <span class="transport-badge {% if 'flight' in b.transport_type|lower %}badge-flight{% elif 'bus' in b.transport_type|lower %}badge-bus{% else %}badge-train{% endif %}" style="padding: 1px 6px; font-size: 0.72rem;">
+                                    {{ b.transport_type }}
+                                </span>
+                                <small style="color: var(--text-secondary);">Dep: {{ b.departure_time }}</small>
+                            </div>
+                        </td>
+                        <td><strong>{{ b.travel_date }}</strong></td>
+                        <td>
+                            <span class="seats-pill seats-available" style="padding: 2px 8px;">
+                                {{ b.seats_booked }} seat{{ 's' if b.seats_booked > 1 else '' }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if b.status == 'CANCELLED' %}
+                                <span class="seats-pill seats-soldout">
+                                    <i data-lucide="x-circle" class="btn-icon" style="width: 12px; height: 12px;"></i> Cancelled
+                                </span>
+                            {% else %}
+                                <span class="seats-pill seats-available">
+                                    <i data-lucide="check-circle" class="btn-icon" style="width: 12px; height: 12px;"></i> Confirmed
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.88rem;">{{ b.booking_time }}</td>
+                        <td>
+                            {% if b.status == 'CANCELLED' %}
+                                <span style="color: var(--text-secondary); font-size: 0.85rem;">None</span>
+                            {% else %}
+                                <button onclick="cancelBooking({{ b.booking_id }})" class="btn-secondary btn-danger-outline" style="padding: 0.45rem 0.85rem; font-size: 0.82rem;">
+                                    <i data-lucide="trash-2" class="btn-icon" style="width: 13px; height: 13px;"></i> Cancel
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i data-lucide="ticket" class="empty-state-icon"></i>
+                                <h3 style="color: var(--text-primary); font-family: var(--font-heading); margin: 0;">No Bookings Yet</h3>
+                                <p style="margin: 0; max-width: 400px;">You do not have any ticket reservations at this moment.</p>
+                                <a href="/" class="btn-primary" style="margin-top: 0.5rem;">
+                                    <i data-lucide="search" class="btn-icon"></i> Search & Book Routes
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const alertBox = document.getElementById('page-alert');
+
+    function showAlert(message, type = 'success') {
+        alertBox.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}" class="btn-icon"></i> ${message}`;
+        alertBox.className = `alert-box ${type}`;
+        alertBox.style.display = 'flex';
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function cancelBooking(bookingId) {
+        if (!confirm(`Are you sure you want to cancel booking #${bookingId}? This action cannot be reversed.`)) {
+            return;
+        }
+        try {
+            const response = await fetch(`/cancel_booking/${bookingId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            } catch (e) {
-                alert('An error occurred while cancelling the booking.');
-            } 
-        }
-    </script>
-    <script>
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    </script>
+            });
+            const data = await response.json();
+            if (data.success) {
+                showAlert(`Booking #${bookingId} has been successfully cancelled.`, 'success');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                showAlert(`Error: ${data.message || 'Could not cancel booking.'}`, 'error');
+            }
+        } catch (e) {
+            showAlert('An unexpected network error occurred while cancelling booking.', 'error');
+        } 
+    }
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>
 </body>
 </html>
